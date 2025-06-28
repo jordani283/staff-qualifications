@@ -6,6 +6,8 @@ import {
 import { Spinner } from './components/ui';
 
 // Page Components
+import LandingPage from './pages/LandingPage';
+import PricingPage from './pages/PricingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -19,7 +21,7 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState('dashboard');
+    const [page, setPage] = useState('landing');
     const [currentPageData, setCurrentPageData] = useState({});
 
     useEffect(() => {
@@ -56,7 +58,7 @@ export default function App() {
             } else {
                 setUser(null);
                 setProfile(null);
-                setPage('login');
+                setPage('landing');
             }
             setLoading(false);
         });
@@ -89,9 +91,25 @@ export default function App() {
         return <div id="app" className="flex h-screen w-screen overflow-hidden"><Spinner /></div>;
     }
 
+    const handleNavigateToAuth = (authType) => {
+        setPage(authType);
+    };
+
+    const handleNavigateBack = () => {
+        setPage('landing');
+    };
+
     let pageContent;
     if (!user) {
-        pageContent = page === 'signup' ? <SignupPage setPage={handleSetPage} /> : <LoginPage setPage={handleSetPage} />;
+        if (page === 'landing') {
+            pageContent = <LandingPage onNavigateToAuth={handleNavigateToAuth} onNavigateToPricing={() => setPage('pricing')} />;
+        } else if (page === 'pricing') {
+            pageContent = <PricingPage onNavigateToAuth={handleNavigateToAuth} onNavigateBack={handleNavigateBack} />;
+        } else if (page === 'signup') {
+            pageContent = <SignupPage setPage={handleSetPage} />;
+        } else {
+            pageContent = <LoginPage setPage={handleSetPage} />;
+        }
     } else if (user && (!profile || !profile.company_name)) {
         pageContent = <OnboardingPage user={user} onProfileUpdate={handleProfileUpdate} />;
     } else {
@@ -102,7 +120,7 @@ export default function App() {
         );
     }
     
-    return <div id="app" className="flex h-screen w-screen overflow-hidden">{pageContent}</div>;
+    return <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden'}>{pageContent}</div>;
 }
 
 // --- Layout Components ---

@@ -33,6 +33,11 @@ export default function LoginPage({ setPage }) {
                 <p className="text-center mt-6 text-slate-400">
                     Don't have an account? <a href="#" onClick={() => setPage('signup')} className="font-medium text-sky-400 hover:text-sky-300">Sign up</a>
                 </p>
+                <p className="text-center mt-4 text-slate-500">
+                    <a href="#" onClick={() => setPage('landing')} className="font-medium hover:text-slate-300">
+                        ← Back to Home
+                    </a>
+                </p>
             </div>
         </div>
     );
