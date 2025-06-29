@@ -2,11 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
 import { Download } from 'lucide-react';
+import ExpiryChart from '../components/ExpiryChart';
+import CertificationModal from '../components/CertificationModal';
 
-export default function DashboardPage() {
+export default function DashboardPage({ profile }) {
     const [metrics, setMetrics] = useState({ green: 0, amber: 0, red: 0 });
     const [certs, setCerts] = useState([]);
+    const [chartData, setChartData] = useState([]);
+    const [allCerts, setAllCerts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedCertification, setSelectedCertification] = useState(null);
+    const [showCertModal, setShowCertModal] = useState(false);
+    const [auditTrail, setAuditTrail] = useState([]);
 
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
@@ -15,6 +22,8 @@ export default function DashboardPage() {
             console.error("Error fetching dashboard data:", error);
             showToast("Error loading data.", "error");
         } else {
+            setAllCerts(data);
+            
             const newMetrics = data.reduce((acc, cert) => {
                 if (cert.status === 'Up-to-Date') acc.green++;
                 if (cert.status === 'Expiring Soon') acc.amber++;
@@ -25,9 +34,120 @@ export default function DashboardPage() {
 
             const actionNeededCerts = data.filter(c => c.status !== 'Up-to-Date').sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
             setCerts(actionNeededCerts);
+
+            // Initial chart data - next 30 days, all staff
+            updateChartData(data, {
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: (() => {
+                    const thirtyDaysFromNow = new Date();
+                    thirtyDaysFromNow.setDate(new Date().getDate() + 30);
+                    return thirtyDaysFromNow.toISOString().split('T')[0];
+                })(),
+                staffId: ''
+            });
         }
         setLoading(false);
     }, []);
+
+    const updateChartData = useCallback((data, filters) => {
+        const { startDate, endDate, staffId } = filters;
+        
+        // Filter data based on date range and staff member
+        let filteredData = data.filter(cert => {
+            const expiryDate = new Date(cert.expiry_date);
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            const withinDateRange = expiryDate >= start && expiryDate <= end;
+            const matchesStaff = !staffId || cert.staff_id === staffId;
+            
+            return withinDateRange && matchesStaff;
+        });
+
+        // Group by expiry date with detailed information
+        const expiryGroups = filteredData.reduce((acc, cert) => {
+            const dateKey = cert.expiry_date;
+            if (!acc[dateKey]) {
+                acc[dateKey] = {
+                    count: 0,
+                    certDetails: []
+                };
+            }
+            acc[dateKey].count += 1;
+            acc[dateKey].certDetails.push({
+                staff_name: cert.staff_name,
+                template_name: cert.template_name,
+                staff_id: cert.staff_id,
+                id: cert.id
+            });
+            return acc;
+        }, {});
+
+        // Calculate date range in days
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysDifference = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        const useWeeklyGrouping = daysDifference > 90; // More than 3 months
+        
+        let chartDataArray = [];
+        
+        if (useWeeklyGrouping) {
+            // Group by weeks
+            const weekGroups = {};
+            
+            // First, populate all certificates into week groups
+            Object.keys(expiryGroups).forEach(dateString => {
+                const date = new Date(dateString);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+                const weekKey = weekStart.toISOString().split('T')[0];
+                
+                if (!weekGroups[weekKey]) {
+                    weekGroups[weekKey] = {
+                        count: 0,
+                        certDetails: []
+                    };
+                }
+                
+                const dayData = expiryGroups[dateString];
+                weekGroups[weekKey].count += dayData.count;
+                weekGroups[weekKey].certDetails.push(...dayData.certDetails);
+            });
+            
+            // Create array for all weeks in range
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 7)) {
+                const weekStart = new Date(d);
+                weekStart.setDate(d.getDate() - d.getDay()); // Start of week
+                const weekKey = weekStart.toISOString().split('T')[0];
+                const weekData = weekGroups[weekKey];
+                
+                chartDataArray.push({
+                    date: weekKey,
+                    count: weekData?.count || 0,
+                    certDetails: weekData?.certDetails || [],
+                    isWeekly: true
+                });
+            }
+        } else {
+            // Daily grouping (original logic)
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateString = d.toISOString().split('T')[0];
+                const dayData = expiryGroups[dateString];
+                chartDataArray.push({
+                    date: dateString,
+                    count: dayData?.count || 0,
+                    certDetails: dayData?.certDetails || [],
+                    isWeekly: false
+                });
+            }
+        }
+
+        setChartData(chartDataArray);
+    }, []);
+
+    const handleFiltersChange = useCallback((filters) => {
+        updateChartData(allCerts, filters);
+    }, [allCerts, updateChartData]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -57,9 +177,57 @@ export default function DashboardPage() {
         link.remove();
     };
 
+    const fetchAuditTrail = async (certificationId) => {
+        // For demo purposes, create some sample audit trail data
+        // In a real app, this would fetch from an audit_trail table
+        const sampleAuditTrail = [
+            {
+                id: 1,
+                action: 'Certificate uploaded',
+                created_at: '2024-01-15T10:30:00Z',
+                performed_by: 'John Admin'
+            },
+            {
+                id: 2,
+                action: 'Expiry reminder sent',
+                created_at: '2024-02-01T09:00:00Z',
+                performed_by: 'System'
+            },
+            {
+                id: 3,
+                action: 'Status updated to expiring soon',
+                created_at: '2024-02-15T12:00:00Z',
+                performed_by: 'System'
+            }
+        ];
+        
+        setAuditTrail(sampleAuditTrail);
+    };
+
+    const handleCertificationClick = async (cert) => {
+        setSelectedCertification({
+            id: cert.id,
+            certification_name: cert.template_name,
+            issue_date: cert.issue_date,
+            expiry_date: cert.expiry_date,
+            status: cert.status,
+            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
+        });
+        await fetchAuditTrail(cert.id);
+        setShowCertModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowCertModal(false);
+        setSelectedCertification(null);
+        setAuditTrail([]);
+    };
+
     return (
         <>
-            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">
+                {profile?.company_name ? `${profile.company_name}'s Dashboard` : 'Dashboard'}
+            </h1>
             <p className="text-slate-400 mb-8">Here's your team's compliance overview.</p>
             
             <div id="dashboard-metrics" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -87,6 +255,11 @@ export default function DashboardPage() {
                 )}
             </div>
 
+            {/* Certificate Expiry Chart */}
+            <div className="mb-8">
+                <ExpiryChart data={chartData} loading={loading} onFiltersChange={handleFiltersChange} />
+            </div>
+
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-white">Action Needed</h2>
                 <button onClick={handleExportCsv} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center text-sm">
@@ -109,7 +282,7 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {certs.map(cert => (
-                                    <tr key={cert.id} className="border-t border-slate-700">
+                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors" onClick={() => handleCertificationClick(cert)}>
                                         <td className="p-4 font-medium text-white">{cert.staff_name}</td>
                                         <td className="p-4 text-slate-300">{cert.template_name}</td>
                                         <td className="p-4 text-slate-300">{cert.expiry_date}</td>
@@ -121,6 +294,13 @@ export default function DashboardPage() {
                     )
                 )}
             </div>
+            
+            <CertificationModal
+                isOpen={showCertModal}
+                onClose={handleCloseModal}
+                certification={selectedCertification}
+                auditTrail={auditTrail}
+            />
         </>
     );
 } 

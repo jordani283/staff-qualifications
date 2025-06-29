@@ -93,21 +93,17 @@ export default function StaffPage({ setPage, user }) {
                                     <th className="p-4 text-center">Up-to-Date</th>
                                     <th className="p-4 text-center">Expiring Soon</th>
                                     <th className="p-4 text-center">Expired</th>
-                                    <th className="p-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
                             {staffWithCerts.map(s => (
-                                <tr key={s.id} className="border-t border-slate-700">
+                                <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors" onClick={() => setPage('staffDetail', { staffMember: s })}>
                                     <td className="p-4 font-medium text-white">{s.full_name}</td>
                                     <td className="p-4 text-slate-300">{s.job_title || '-'}</td>
                                     <td className="p-4 text-slate-300">{s.email || '-'}</td>
                                     <td className="p-4 text-center font-medium text-green-400">{s.certs.green}</td>
                                     <td className="p-4 text-center font-medium text-amber-400">{s.certs.amber}</td>
                                     <td className="p-4 text-center font-medium text-red-400">{s.certs.red}</td>
-                                    <td className="p-4 text-right">
-                                        <button onClick={() => setPage('staffDetail', { staffMember: s })} className="text-sky-400 hover:text-sky-300">View</button>
-                                    </td>
                                 </tr>
                             ))}
                             </tbody>

@@ -108,7 +108,7 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Shield className="w-8 h-8 text-blue-600 mr-2" />
-              <span className="text-xl font-bold text-gray-900">QualTracker</span>
+                              <span className="text-xl font-bold text-gray-900">StaffCertify</span>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -277,7 +277,7 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
             </button>
           </div>
           <p className="text-blue-100 mt-6 text-sm">
-            Questions? Email us at <a href="mailto:hello@qualtracker.com" className="underline hover:text-white">hello@qualtracker.com</a>
+                            Questions? Email us at <a href="mailto:hello@staffcertify.com" className="underline hover:text-white">hello@staffcertify.com</a>
           </p>
         </div>
       </section>
@@ -289,7 +289,7 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
             <div>
               <div className="flex items-center mb-4">
                 <Shield className="w-8 h-8 text-blue-400 mr-2" />
-                <span className="text-xl font-bold">QualTracker</span>
+                                    <span className="text-xl font-bold">StaffCertify</span>
               </div>
               <p className="text-gray-400">
                 The modern solution for qualification and certification management.
@@ -324,7 +324,7 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400">© 2024 QualTracker. All rights reserved.</p>
+                            <p className="text-gray-400">© 2024 StaffCertify. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Twitter</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors">LinkedIn</a>

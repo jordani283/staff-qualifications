@@ -1,5 +1,5 @@
 {
-  "name": "staff-quals-tracker",
+  "name": "staffcertify",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,8 +12,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "lucide-react": "^0.294.0",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "recharts": "^3.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
@@ -28,4 +30,4 @@
     "tailwindcss": "^3.3.5",
     "vite": "^5.0.0"
   }
-} 
+}

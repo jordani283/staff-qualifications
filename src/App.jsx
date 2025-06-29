@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import {
     ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, LogOut
@@ -15,6 +15,7 @@ import DashboardPage from './pages/DashboardPage';
 import StaffPage from './pages/StaffPage';
 import StaffDetailPage from './pages/StaffDetailPage';
 import CertificatesPage from './pages/CertificatesPage';
+import CertificationModalDemo from './components/CertificationModalDemo';
 
 // --- Main App Component ---
 export default function App() {
@@ -23,6 +24,9 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState('landing');
     const [currentPageData, setCurrentPageData] = useState({});
+    const processingAuth = useRef(false);
+    const currentUser = useRef(null);
+    const currentProfile = useRef(null);
 
     useEffect(() => {
         const getInitialData = async () => {
@@ -38,35 +42,105 @@ export default function App() {
                 
                 setUser(session.user);
                 setProfile(profile);
+                
+                // Set default page for authenticated users with complete profiles
+                if (profile && profile.company_name) {
+                    setPage('dashboard');
+                }
             }
             setLoading(false);
         };
 
         getInitialData();
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setLoading(true);
-            if (session?.user) {
-                 const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-                
-                setUser(session.user);
-                setProfile(profile);
-            } else {
-                setUser(null);
-                setProfile(null);
-                setPage('landing');
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state change:', event, session?.user?.id, 'Current user ref:', currentUser.current?.id, 'Processing:', processingAuth.current);
+            
+            // Prevent concurrent auth processing
+            if (processingAuth.current) {
+                console.log('Already processing auth change, skipping...');
+                return;
             }
-            setLoading(false);
+
+            try {
+                processingAuth.current = true;
+
+                if (event === 'SIGNED_OUT' || !session?.user) {
+                    console.log('Signing out user');
+                    currentUser.current = null;
+                    currentProfile.current = null;
+                    setUser(null);
+                    setProfile(null);
+                    setPage('landing');
+                    processingAuth.current = false;
+                    return;
+                }
+
+                // If we have a session with a user
+                if (session?.user) {
+                    const sessionUserId = session.user.id;
+                    
+                    // Check if this is the same user we already have
+                    if (currentUser.current?.id === sessionUserId && currentProfile.current) {
+                        console.log('Same user, just updating session object');
+                        currentUser.current = session.user;
+                        setUser(session.user);
+                        processingAuth.current = false;
+                        return;
+                    }
+
+                    // New user or we don't have profile data - fetch it
+                    console.log('Fetching profile for user:', sessionUserId);
+                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                        setLoading(true);
+                    }
+
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', sessionUserId)
+                        .maybeSingle();
+
+                    if (error) {
+                        console.error('Error fetching profile:', error);
+                    }
+
+                    currentUser.current = session.user;
+                    currentProfile.current = profile;
+                    setUser(session.user);
+                    setProfile(profile);
+                    
+                    // Set default page for authenticated users with complete profiles
+                    if (profile && profile.company_name && (page === 'landing' || page === 'login' || page === 'signup')) {
+                        setPage('dashboard');
+                    }
+                    
+                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                        setLoading(false);
+                    }
+                }
+
+                processingAuth.current = false;
+            } catch (error) {
+                console.error('Error in auth state change:', error);
+                processingAuth.current = false;
+                setLoading(false);
+            }
         });
 
         return () => {
             authListener?.subscription.unsubscribe();
         };
     }, []);
+
+    // Keep refs in sync with state
+    useEffect(() => {
+        currentUser.current = user;
+    }, [user]);
+
+    useEffect(() => {
+        currentProfile.current = profile;
+    }, [profile]);
 
     const handleSetPage = (newPage, data = {}) => {
         setPage(newPage);
@@ -81,6 +155,7 @@ export default function App() {
                 .select('*')
                 .eq('id', user.id)
                 .maybeSingle();
+            currentProfile.current = profile;
             setProfile(profile);
             setLoading(false);
             setPage('dashboard');
@@ -115,7 +190,7 @@ export default function App() {
     } else {
         pageContent = (
             <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage}>
-                <PageContent page={page} currentPageData={currentPageData} setPage={handleSetPage} user={user} />
+                <PageContent page={page} currentPageData={currentPageData} setPage={handleSetPage} user={user} profile={profile} />
             </MainLayout>
         );
     }
@@ -136,12 +211,13 @@ function MainLayout({ page, profile, user, setPage, children }) {
             <nav className="bg-slate-950/70 border-r border-slate-800 w-64 p-4 flex-col flex-shrink-0 hidden md:flex">
                 <div className="flex items-center gap-3 px-2 mb-8">
                     <ShieldCheck className="text-sky-400 h-8 w-8" />
-                    <span className="font-bold text-lg text-white">CertiTrack</span>
+                    <span className="font-bold text-lg text-white">StaffCertify</span>
                 </div>
                 <div className="flex-grow space-y-2">
                     <a href="#" className={navItemClass('dashboard')} onClick={() => setPage('dashboard')}><LayoutDashboard className="mr-3 h-5 w-5" />Dashboard</a>
                     <a href="#" className={navItemClass('staff')} onClick={() => setPage('staff')}><Users className="mr-3 h-5 w-5" />Staff</a>
                     <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
+                    <a href="#" className={navItemClass('modal-demo')} onClick={() => setPage('modal-demo')}><FileSpreadsheet className="mr-3 h-5 w-5" />Modal Demo</a>
                 </div>
                 <div className="text-sm">
                     <div className="p-2 text-slate-300 font-medium">{profile?.company_name || '...'}</div>
@@ -158,12 +234,13 @@ function MainLayout({ page, profile, user, setPage, children }) {
     );
 }
 
-function PageContent({ page, currentPageData, setPage, user }) {
+function PageContent({ page, currentPageData, setPage, user, profile }) {
     switch (page) {
-        case 'dashboard': return <DashboardPage />;
+        case 'dashboard': return <DashboardPage profile={profile} />;
         case 'staff': return <StaffPage setPage={setPage} user={user} />;
         case 'staffDetail': return <StaffDetailPage staffMember={currentPageData.staffMember} setPage={setPage} user={user} />;
         case 'certificates': return <CertificatesPage user={user} />;
+        case 'modal-demo': return <CertificationModalDemo />;
         default: return <div>Page not found</div>;
     }
 }

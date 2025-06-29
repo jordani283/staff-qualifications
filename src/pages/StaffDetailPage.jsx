@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
+import CertificationModal from '../components/CertificationModal';
 import { Plus, ArrowLeft, Trash2 } from 'lucide-react';
 
 function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
@@ -120,6 +121,9 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
     const [certs, setCerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
+    const [selectedCertification, setSelectedCertification] = useState(null);
+    const [showCertModal, setShowCertModal] = useState(false);
+    const [auditTrail, setAuditTrail] = useState([]);
 
     const fetchStaffCertifications = useCallback(async () => {
         setLoading(true);
@@ -146,6 +150,60 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
                 fetchStaffCertifications();
             }
         }
+    };
+
+    const fetchAuditTrail = async (certificationId) => {
+        // For demo purposes, create some sample audit trail data
+        // In a real app, this would fetch from an audit_trail table
+        const sampleAuditTrail = [
+            {
+                id: 1,
+                action: 'Certificate uploaded',
+                created_at: '2024-01-15T10:30:00Z',
+                performed_by: 'John Admin'
+            },
+            {
+                id: 2,
+                action: 'Expiry date updated',
+                created_at: '2024-01-20T14:15:00Z',
+                performed_by: 'Sarah Manager'
+            },
+            {
+                id: 3,
+                action: 'Reminder sent',
+                created_at: '2024-02-01T09:00:00Z',
+                performed_by: 'System'
+            }
+        ];
+        
+        setAuditTrail(sampleAuditTrail);
+        
+        // TODO: Replace with actual database query
+        // const { data, error } = await supabase
+        //     .from('audit_trail')
+        //     .select('*')
+        //     .eq('certification_id', certificationId)
+        //     .order('created_at', { ascending: false });
+        // if (!error) setAuditTrail(data || []);
+    };
+
+    const handleCertificationClick = async (cert) => {
+        setSelectedCertification({
+            id: cert.id,
+            certification_name: cert.template_name,
+            issue_date: cert.issue_date,
+            expiry_date: cert.expiry_date,
+            status: cert.status,
+            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
+        });
+        await fetchAuditTrail(cert.id);
+        setShowCertModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowCertModal(false);
+        setSelectedCertification(null);
+        setAuditTrail([]);
     };
     
     return (
@@ -176,14 +234,14 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
                             </thead>
                             <tbody>
                                 {certs.map(cert => (
-                                     <tr key={cert.id} className="border-t border-slate-700">
-                                        <td className="p-4 font-medium text-white">{cert.template_name}</td>
-                                        <td className="p-4 text-slate-300">{cert.issue_date}</td>
-                                        <td className="p-4 text-slate-300">{cert.expiry_date}</td>
-                                        <td className="p-4"><StatusBadge status={cert.status} /></td>
-                                        <td className="p-4">{cert.document_url ? <a href={cert.document_url} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">View</a> : '-'}</td>
+                                     <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors">
+                                        <td className="p-4 font-medium text-white" onClick={() => handleCertificationClick(cert)}>{cert.template_name}</td>
+                                        <td className="p-4 text-slate-300" onClick={() => handleCertificationClick(cert)}>{cert.issue_date}</td>
+                                        <td className="p-4 text-slate-300" onClick={() => handleCertificationClick(cert)}>{cert.expiry_date}</td>
+                                        <td className="p-4" onClick={() => handleCertificationClick(cert)}><StatusBadge status={cert.status} /></td>
+                                        <td className="p-4" onClick={() => handleCertificationClick(cert)}>{cert.document_url ? <span className="text-sky-400">View Document</span> : '-'}</td>
                                         <td className="p-4 text-right">
-                                            <button onClick={() => handleDeleteCert(cert.id)} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteCert(cert.id); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -203,6 +261,13 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
                     }}
                 />
             )}
+            
+            <CertificationModal
+                isOpen={showCertModal}
+                onClose={handleCloseModal}
+                certification={selectedCertification}
+                auditTrail={auditTrail}
+            />
         </>
     );
 }
