@@ -4,6 +4,7 @@ import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
 import { Download } from 'lucide-react';
 import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
+import { fetchAuditTrail } from '../utils/auditLogger.js';
 
 export default function DashboardPage({ profile }) {
     const [metrics, setMetrics] = useState({ green: 0, amber: 0, red: 0 });
@@ -177,31 +178,14 @@ export default function DashboardPage({ profile }) {
         link.remove();
     };
 
-    const fetchAuditTrail = async (certificationId) => {
-        // For demo purposes, create some sample audit trail data
-        // In a real app, this would fetch from an audit_trail table
-        const sampleAuditTrail = [
-            {
-                id: 1,
-                action: 'Certificate uploaded',
-                created_at: '2024-01-15T10:30:00Z',
-                performed_by: 'John Admin'
-            },
-            {
-                id: 2,
-                action: 'Expiry reminder sent',
-                created_at: '2024-02-01T09:00:00Z',
-                performed_by: 'System'
-            },
-            {
-                id: 3,
-                action: 'Status updated to expiring soon',
-                created_at: '2024-02-15T12:00:00Z',
-                performed_by: 'System'
-            }
-        ];
-        
-        setAuditTrail(sampleAuditTrail);
+    const fetchAuditTrailData = async (certificationId) => {
+        const { data, error } = await fetchAuditTrail(certificationId);
+        if (error) {
+            console.error('Failed to fetch audit trail:', error);
+            setAuditTrail([]);
+        } else {
+            setAuditTrail(data || []);
+        }
     };
 
     const handleCertificationClick = async (cert) => {
@@ -213,7 +197,7 @@ export default function DashboardPage({ profile }) {
             status: cert.status,
             document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
         });
-        await fetchAuditTrail(cert.id);
+        await fetchAuditTrailData(cert.id);
         setShowCertModal(true);
     };
 

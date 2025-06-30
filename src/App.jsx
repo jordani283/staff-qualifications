@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import {
-    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, LogOut
+    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut
 } from 'lucide-react';
 import { Spinner } from './components/ui';
 
@@ -15,7 +15,8 @@ import DashboardPage from './pages/DashboardPage';
 import StaffPage from './pages/StaffPage';
 import StaffDetailPage from './pages/StaffDetailPage';
 import CertificatesPage from './pages/CertificatesPage';
-import CertificationModalDemo from './components/CertificationModalDemo';
+import ActivitiesPage from './pages/ActivitiesPage';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 // --- Main App Component ---
 export default function App() {
@@ -24,9 +25,7 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState('landing');
     const [currentPageData, setCurrentPageData] = useState({});
-    const processingAuth = useRef(false);
-    const currentUser = useRef(null);
-    const currentProfile = useRef(null);
+    const [stripeSessionId, setStripeSessionId] = useState(null);
 
     useEffect(() => {
         const getInitialData = async () => {
@@ -34,14 +33,21 @@ export default function App() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (session?.user) {
-                const { data: profile } = await supabase
+                const { data: profile, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
                     .maybeSingle();
                 
+                if (error) {
+                    console.error('Error fetching profile in initial load:', error);
+                } else {
+                    console.log('✅ Profile data fetched successfully (initial load):', profile);
+                }
+                
                 setUser(session.user);
                 setProfile(profile);
+                console.log('✅ setProfile() has been called (initial load).');
                 
                 // Set default page for authenticated users with complete profiles
                 if (profile && profile.company_name) {
@@ -49,98 +55,96 @@ export default function App() {
                 }
             }
             setLoading(false);
+            console.log('✅ setLoading(false) has been called (initial load).');
         };
 
         getInitialData();
 
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change:', event, session?.user?.id, 'Current user ref:', currentUser.current?.id, 'Processing:', processingAuth.current);
-            
-            // Prevent concurrent auth processing
-            if (processingAuth.current) {
-                console.log('Already processing auth change, skipping...');
+            console.log(`Auth state change: ${event}`, session?.user?.id || '');
+
+            if (event === 'SIGNED_OUT' || !session) {
+                setUser(null);
+                setProfile(null);
+                setLoading(false); // Ensure loading is false on sign out
+                setPage('landing');
                 return;
             }
 
-            try {
-                processingAuth.current = true;
+            // Set user immediately, and loading to true while we fetch the profile
+            setUser(session.user);
+            setLoading(true);
 
-                if (event === 'SIGNED_OUT' || !session?.user) {
-                    console.log('Signing out user');
-                    currentUser.current = null;
-                    currentProfile.current = null;
-                    setUser(null);
-                    setProfile(null);
-                    setPage('landing');
-                    processingAuth.current = false;
-                    return;
-                }
+            // Now, fetch the profile
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
 
-                // If we have a session with a user
-                if (session?.user) {
-                    const sessionUserId = session.user.id;
-                    
-                    // Check if this is the same user we already have
-                    if (currentUser.current?.id === sessionUserId && currentProfile.current) {
-                        console.log('Same user, just updating session object');
-                        currentUser.current = session.user;
-                        setUser(session.user);
-                        processingAuth.current = false;
-                        return;
-                    }
-
-                    // New user or we don't have profile data - fetch it
-                    console.log('Fetching profile for user:', sessionUserId);
-                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-                        setLoading(true);
-                    }
-
-                    const { data: profile, error } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', sessionUserId)
-                        .maybeSingle();
-
-                    if (error) {
-                        console.error('Error fetching profile:', error);
-                    }
-
-                    currentUser.current = session.user;
-                    currentProfile.current = profile;
-                    setUser(session.user);
-                    setProfile(profile);
-                    
-                    // Set default page for authenticated users with complete profiles
-                    if (profile && profile.company_name && (page === 'landing' || page === 'login' || page === 'signup')) {
-                        setPage('dashboard');
-                    }
-                    
-                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-                        setLoading(false);
-                    }
-                }
-
-                processingAuth.current = false;
-            } catch (error) {
-                console.error('Error in auth state change:', error);
-                processingAuth.current = false;
-                setLoading(false);
+            if (error) {
+                console.error('Error fetching profile:', error);
+                setProfile(null); // Set profile to null on error
+            } else {
+                // THIS IS THE CRITICAL BLOCK THAT WAS MISSING
+                console.log('✅ Profile data fetched successfully:', profile);
+                setProfile(profile); // ✅ SET THE PROFILE STATE
             }
+
+            // Set default page for authenticated users with complete profiles
+            if (profile && profile.company_name) {
+                setPage('dashboard');
+            }
+
+            // This should be the VERY LAST thing to happen after all data is resolved.
+            setLoading(false);
+            console.log('✅ All auth processing finished. Setting loading to false.');
         });
 
         return () => {
-            authListener?.subscription.unsubscribe();
+            authListener.subscription.unsubscribe();
         };
     }, []);
 
-    // Keep refs in sync with state
+    // HOOK 1: Captures the Stripe session ID from the URL on initial load
     useEffect(() => {
-        currentUser.current = user;
-    }, [user]);
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        const success = urlParams.get('success');
 
+        if (success === 'true' && sessionId) {
+            console.log('✅ Stripe success detected. Capturing session ID:', sessionId);
+            setStripeSessionId(sessionId);
+            // Clean the URL immediately so this doesn't run again on a refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []); // Empty dependency array means this runs only once on mount
+
+    // HOOK 2: Waits for auth data and a captured session ID, then redirects
     useEffect(() => {
-        currentProfile.current = profile;
-    }, [profile]);
+        // Create clear boolean flags inside the effect
+        const isDataReady = !!(user && profile && !loading);
+        const isRedirectPending = !!stripeSessionId;
+
+        // Log the status every time this hook runs
+        console.log('Redirect watcher status:', {
+            isDataReady,
+            isRedirectPending,
+            isLoading: loading,
+            hasUser: !!user,
+            hasProfile: !!profile
+        });
+
+        // The condition to finally redirect
+        if (isDataReady && isRedirectPending) {
+            console.log('🚀 All conditions met. REDIRECTING to subscription!');
+            setPage('subscription');
+            
+            // Clear the session ID from state to prevent loops
+            setStripeSessionId(null);
+        }
+        
+    }, [user, profile, loading, stripeSessionId]); // Dependencies remain the same
 
     const handleSetPage = (newPage, data = {}) => {
         setPage(newPage);
@@ -217,7 +221,8 @@ function MainLayout({ page, profile, user, setPage, children }) {
                     <a href="#" className={navItemClass('dashboard')} onClick={() => setPage('dashboard')}><LayoutDashboard className="mr-3 h-5 w-5" />Dashboard</a>
                     <a href="#" className={navItemClass('staff')} onClick={() => setPage('staff')}><Users className="mr-3 h-5 w-5" />Staff</a>
                     <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
-                    <a href="#" className={navItemClass('modal-demo')} onClick={() => setPage('modal-demo')}><FileSpreadsheet className="mr-3 h-5 w-5" />Modal Demo</a>
+                    <a href="#" className={navItemClass('activities')} onClick={() => setPage('activities')}><Clock className="mr-3 h-5 w-5" />Activities</a>
+                    <a href="#" className={navItemClass('subscription')} onClick={() => setPage('subscription')}><CreditCard className="mr-3 h-5 w-5" />Subscription</a>
                 </div>
                 <div className="text-sm">
                     <div className="p-2 text-slate-300 font-medium">{profile?.company_name || '...'}</div>
@@ -240,7 +245,8 @@ function PageContent({ page, currentPageData, setPage, user, profile }) {
         case 'staff': return <StaffPage setPage={setPage} user={user} />;
         case 'staffDetail': return <StaffDetailPage staffMember={currentPageData.staffMember} setPage={setPage} user={user} />;
         case 'certificates': return <CertificatesPage user={user} />;
-        case 'modal-demo': return <CertificationModalDemo />;
+        case 'activities': return <ActivitiesPage user={user} />;
+        case 'subscription': return <SubscriptionPage user={user} />;
         default: return <div>Page not found</div>;
     }
 }

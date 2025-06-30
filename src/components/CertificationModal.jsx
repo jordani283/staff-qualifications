@@ -208,9 +208,33 @@ const CertificationModal = ({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="text-white font-medium mb-1">
-                          {entry.action || 'Unknown action'}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-white font-medium">
+                            {entry.action_type || entry.action || 'Unknown action'}
+                          </span>
+                          {entry.field && (
+                            <span className="text-xs bg-slate-600 text-slate-300 px-2 py-1 rounded">
+                              {entry.field}
+                            </span>
+                          )}
                         </div>
+                        
+                        {/* Show field changes if available */}
+                        {entry.old_value && entry.new_value && (
+                          <div className="text-sm text-slate-300 mb-2">
+                            <span className="text-red-400">{entry.old_value}</span>
+                            <span className="text-slate-500 mx-2">→</span>
+                            <span className="text-green-400">{entry.new_value}</span>
+                          </div>
+                        )}
+                        
+                        {/* Show note if available */}
+                        {entry.note && (
+                          <div className="text-sm text-slate-400 mb-2 italic">
+                            {entry.note}
+                          </div>
+                        )}
+                        
                         <div className="flex items-center gap-4 text-sm text-slate-300">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
@@ -256,6 +280,11 @@ CertificationModal.propTypes = {
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       action: PropTypes.string,
+      action_type: PropTypes.string,
+      field: PropTypes.string,
+      old_value: PropTypes.string,
+      new_value: PropTypes.string,
+      note: PropTypes.string,
       created_at: PropTypes.string,
       date: PropTypes.string,
       performed_by: PropTypes.string,

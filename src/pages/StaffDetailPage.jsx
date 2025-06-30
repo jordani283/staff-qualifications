@@ -4,6 +4,12 @@ import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import CertificationModal from '../components/CertificationModal';
 import { Plus, ArrowLeft, Trash2 } from 'lucide-react';
+import { 
+    logCertificationCreated, 
+    logCertificationDeleted, 
+    logDocumentUploaded,
+    fetchAuditTrail 
+} from '../utils/auditLogger.js';
 
 function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
     const [templates, setTemplates] = useState([]);
@@ -71,8 +77,22 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
                 document_url: documentUrl,
             };
 
-            const { error } = await supabase.from('staff_certifications').insert(newCert);
+            const { data: insertedCert, error } = await supabase
+                .from('staff_certifications')
+                .insert(newCert)
+                .select()
+                .single();
             if (error) throw error;
+
+            // Log audit trail for certification creation
+            await logCertificationCreated(insertedCert.id, {
+                template_name: templates.find(t => t.id === newCert.template_id)?.name
+            });
+
+            // Log document upload if a document was uploaded
+            if (documentUrl && file) {
+                await logDocumentUploaded(insertedCert.id, file.name);
+            }
 
             showToast('Certification assigned!', 'success');
             onSuccess();
@@ -142,49 +162,39 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
     
     const handleDeleteCert = async (id) => {
         if(confirm('Are you sure you want to delete this certification?')) {
+            // Get certification data before deletion for audit log
+            const { data: certToDelete } = await supabase
+                .from('v_certifications_with_status')
+                .select('*')
+                .eq('id', id)
+                .single();
+
             const { error } = await supabase.from('staff_certifications').delete().eq('id', id);
             if(error) {
                 showToast(error.message, 'error');
             } else {
+                // Log audit trail for certification deletion
+                if (certToDelete) {
+                    await logCertificationDeleted(id, {
+                        template_name: certToDelete.template_name,
+                        expiry_date: certToDelete.expiry_date
+                    });
+                }
+                
                 showToast('Certification deleted.', 'success');
                 fetchStaffCertifications();
             }
         }
     };
 
-    const fetchAuditTrail = async (certificationId) => {
-        // For demo purposes, create some sample audit trail data
-        // In a real app, this would fetch from an audit_trail table
-        const sampleAuditTrail = [
-            {
-                id: 1,
-                action: 'Certificate uploaded',
-                created_at: '2024-01-15T10:30:00Z',
-                performed_by: 'John Admin'
-            },
-            {
-                id: 2,
-                action: 'Expiry date updated',
-                created_at: '2024-01-20T14:15:00Z',
-                performed_by: 'Sarah Manager'
-            },
-            {
-                id: 3,
-                action: 'Reminder sent',
-                created_at: '2024-02-01T09:00:00Z',
-                performed_by: 'System'
-            }
-        ];
-        
-        setAuditTrail(sampleAuditTrail);
-        
-        // TODO: Replace with actual database query
-        // const { data, error } = await supabase
-        //     .from('audit_trail')
-        //     .select('*')
-        //     .eq('certification_id', certificationId)
-        //     .order('created_at', { ascending: false });
-        // if (!error) setAuditTrail(data || []);
+    const fetchAuditTrailData = async (certificationId) => {
+        const { data, error } = await fetchAuditTrail(certificationId);
+        if (error) {
+            console.error('Failed to fetch audit trail:', error);
+            setAuditTrail([]);
+        } else {
+            setAuditTrail(data || []);
+        }
     };
 
     const handleCertificationClick = async (cert) => {
@@ -196,7 +206,7 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
             status: cert.status,
             document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
         });
-        await fetchAuditTrail(cert.id);
+        await fetchAuditTrailData(cert.id);
         setShowCertModal(true);
     };
 

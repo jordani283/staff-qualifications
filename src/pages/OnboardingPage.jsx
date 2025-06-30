@@ -9,11 +9,12 @@ export default function OnboardingPage({ user, onProfileUpdate }) {
         e.preventDefault();
         setIsSubmitting(true);
         const formData = new FormData(e.target);
-        const companyName = formData.get('company_name');
 
         const profileData = {
             id: user.id,
-            company_name: companyName,
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name'),
+            company_name: formData.get('company_name'),
             updated_at: new Date(),
         };
 
@@ -37,8 +38,18 @@ export default function OnboardingPage({ user, onProfileUpdate }) {
         <div className="w-full h-full flex items-center justify-center p-4">
             <div className="w-full max-w-md text-center">
                 <h1 className="text-3xl font-bold text-white">One Last Step</h1>
-                <p className="text-slate-400 mt-2 mb-6">Let's set up your company profile.</p>
+                <p className="text-slate-400 mt-2 mb-6">Let's set up your profile and company information.</p>
                 <form onSubmit={handleOnboarding} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="first_name" className="block text-sm font-medium text-slate-300 mb-1 text-left">First Name</label>
+                            <input id="first_name" name="first_name" type="text" required className="w-full bg-slate-800 border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="last_name" className="block text-sm font-medium text-slate-300 mb-1 text-left">Last Name</label>
+                            <input id="last_name" name="last_name" type="text" required className="w-full bg-slate-800 border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500" />
+                        </div>
+                    </div>
                     <div>
                         <label htmlFor="company_name" className="block text-sm font-medium text-slate-300 mb-1 text-left">Company Name</label>
                         <input id="company_name" name="company_name" type="text" required className="w-full bg-slate-800 border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500" />
