@@ -19,6 +19,7 @@ jobs:
             -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "X-Function-Auth-Token: ${{ secrets.SUPABASE_FUNCTION_AUTH_TOKEN }}" \
             -d '{"scheduled": true}' \
             https://uydysrzsvnclyxaqdsag.supabase.co/functions/v1/send-expiry-reminders)
           
