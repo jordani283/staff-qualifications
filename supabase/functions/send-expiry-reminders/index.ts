@@ -34,19 +34,31 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+// Security: Define allowed origins
+const ALLOWED_ORIGINS = [
+  'https://teamcertify.com',
+  'https://www.teamcertify.com',
+  'https://teamcertify.vercel.app'
+]
+
 serve(async (req) => {
-  // Handle CORS
+  // Security: Validate origin
+  const origin = req.headers.get('origin')
+  const isAllowedOrigin = !origin || ALLOWED_ORIGINS.includes(origin)
+  
+  // Handle CORS with restricted origins
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Origin': isAllowedOrigin ? (origin || 'null') : 'null',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Function-Auth-Token',
+        'Access-Control-Max-Age': '86400',
       },
     })
   }
 
-  // Only allow POST requests
+  // Security: Only allow POST requests
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
@@ -54,10 +66,32 @@ serve(async (req) => {
     })
   }
 
+  // Security: Validate origin for actual requests
+  if (!isAllowedOrigin) {
+    console.error('🚫 Unauthorized origin:', origin)
+    return new Response(JSON.stringify({ error: 'Unauthorized origin' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // 🚨 CRITICAL ADDITIONAL AUTHENTICATION CHECK 🚨
+  // Supabase already validated the service role key, but we add an extra layer
+  const customToken = req.headers.get('X-Function-Auth-Token')
+  const expectedCustomToken = Deno.env.get('FUNCTION_AUTH_TOKEN') // Additional secret for this function
+
+  if (!customToken || customToken !== expectedCustomToken) {
+    console.warn('🚫 Unauthorized access attempt to send-expiry-reminders function - custom token invalid.')
+    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid or missing custom token' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     console.log('🔔 Starting certification expiry reminder process...')
 
-    // Get SendGrid API key
+    // Validate required environment variables
     const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY')
     if (!sendGridApiKey) {
       throw new Error('SENDGRID_API_KEY environment variable is not set')
@@ -74,11 +108,12 @@ serve(async (req) => {
       throw new Error('Failed to fetch app settings')
     }
 
-    const adminEmail = settings?.find(s => s.key === 'admin_email')?.value || 'admin@staffcertify.com'
-    const baseUrl = settings?.find(s => s.key === 'app_base_url')?.value || 'https://yourstaffcertifyapp.com'
+    const adminEmail = settings?.find(s => s.key === 'admin_email')?.value || 'admin@teamcertify.com'
+    const baseUrl = settings?.find(s => s.key === 'app_base_url')?.value || 'https://teamcertify.com'
 
-    console.log(`📧 Admin email: ${adminEmail}`)
-    console.log(`🌐 Base URL: ${baseUrl}`)
+    // Security: Secure logging - don't expose actual values
+    console.log('📧 Admin email configured:', adminEmail ? '[CONFIGURED]' : '[MISSING]')
+    console.log('🌐 Base URL configured:', baseUrl ? '[CONFIGURED]' : '[MISSING]')
 
     // Call the database function to get expiring certifications
     const { data: expiringCerts, error: certsError } = await supabase
@@ -98,7 +133,10 @@ serve(async (req) => {
         message: 'No certifications expiring today',
         count: 0
       }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin || 'null'
+        },
       })
     }
 
@@ -111,6 +149,14 @@ serve(async (req) => {
     // Send emails for each expiring certification
     for (const cert of certifications) {
       try {
+        // Security: Validate email addresses before sending
+        if (!isValidEmail(cert.staff_email) || !isValidEmail(adminEmail)) {
+          console.error('❌ Invalid email address detected')
+          emailsFailed += 2
+          failures.push(`Invalid email addresses for ${cert.staff_full_name}`)
+          continue
+        }
+
         // Send email to staff member
         const staffEmailSent = await sendExpiryEmail({
           sendGridApiKey,
@@ -126,10 +172,10 @@ serve(async (req) => {
 
         if (staffEmailSent) {
           emailsSent++
-          console.log(`✅ Staff email sent to ${cert.staff_email} for ${cert.certification_name}`)
+          console.log(`✅ Staff email sent for ${cert.certification_name}`)
         } else {
           emailsFailed++
-          failures.push(`Staff email to ${cert.staff_email}`)
+          failures.push(`Staff email to ${maskEmail(cert.staff_email)}`)
         }
 
         // Send email to admin
@@ -147,18 +193,18 @@ serve(async (req) => {
 
         if (adminEmailSent) {
           emailsSent++
-          console.log(`✅ Admin email sent to ${adminEmail} for ${cert.staff_full_name}'s ${cert.certification_name}`)
+          console.log(`✅ Admin email sent for ${cert.staff_full_name}'s ${cert.certification_name}`)
         } else {
           emailsFailed++
-          failures.push(`Admin email to ${adminEmail}`)
+          failures.push(`Admin email to ${maskEmail(adminEmail)}`)
         }
 
-        // Small delay between emails to avoid rate limiting
+        // Rate limiting: delay between emails
         await new Promise(resolve => setTimeout(resolve, 100))
 
       } catch (error) {
         console.error(`❌ Error processing certification ${cert.certification_id}:`, error)
-        emailsFailed += 2 // Both staff and admin emails failed
+        emailsFailed += 2
         failures.push(`Both emails for ${cert.staff_full_name}'s ${cert.certification_name}`)
       }
     }
@@ -173,20 +219,39 @@ serve(async (req) => {
       emailsFailed,
       failures: failures.length > 0 ? failures : undefined
     }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin || 'null'
+      },
     })
 
   } catch (error) {
     console.error('❌ Error in send-expiry-reminders:', error)
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: 'Internal server error',
       success: false
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin || 'null'
+      },
     })
   }
 })
+
+// Security: Email validation function
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email) && email.length <= 254
+}
+
+// Security: Email masking for logs
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  const maskedLocal = local.substring(0, 2) + '*'.repeat(Math.max(0, local.length - 2))
+  return `${maskedLocal}@${domain}`
+}
 
 async function sendExpiryEmail({
   sendGridApiKey,
@@ -238,8 +303,8 @@ async function sendExpiryEmail({
         subject: subject
       }],
       from: {
-        email: 'notifications@staffcertify.com',
-        name: 'StaffCertify Notifications'
+        email: 'notifications@teamcertify.com',
+        name: 'TeamCertify Notifications'
       },
       content: [
         {
@@ -312,7 +377,7 @@ function generateStaffEmailHTML({ staffName, certificationName, certificationUrl
     
     <hr style="margin: 30px 0; border: none; border-top: 1px solid #dee2e6;">
     <p style="font-size: 12px; color: #6c757d;">
-      This is an automated message from StaffCertify. Please do not reply to this email.
+      This is an automated message from TeamCertify. Please do not reply to this email.
     </p>
   </div>
 </body>
@@ -363,7 +428,7 @@ function generateAdminEmailHTML({ staffName, certificationName, certificationUrl
     
     <hr style="margin: 30px 0; border: none; border-top: 1px solid #dee2e6;">
     <p style="font-size: 12px; color: #6c757d;">
-      This is an automated message from StaffCertify. 
+      This is an automated message from TeamCertify. 
     </p>
   </div>
 </body>

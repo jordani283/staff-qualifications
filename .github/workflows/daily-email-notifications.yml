@@ -1,0 +1,46 @@
+name: Daily Certification Expiry Notifications
+
+on:
+  schedule:
+    # Run daily at 9:00 AM UTC (adjust time as needed)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual triggering for testing
+
+jobs:
+  send-notifications:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Certification Expiry Reminders
+        run: |
+          echo "🔔 Triggering certification expiry reminders..."
+          
+          response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "X-Function-Auth-Token: ${{ secrets.SUPABASE_FUNCTION_AUTH_TOKEN }}" \
+            -d '{"scheduled": true}' \
+            https://uydysrzsvnclyxaqdsag.supabase.co/functions/v1/send-expiry-reminders)
+          
+          # Extract HTTP status code
+          http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          
+          # Extract response body
+          body=$(echo $response | sed -E 's/HTTPSTATUS\:[0-9]{3}$//')
+          
+          echo "📊 Response Status: $http_code"
+          echo "📄 Response Body: $body"
+          
+          # Check if request was successful
+          if [ $http_code -eq 200 ]; then
+            echo "✅ Email notifications sent successfully!"
+          else
+            echo "❌ Email notification failed with status: $http_code"
+            echo "Response: $body"
+            exit 1
+          fi
+
+      - name: Log Completion
+        run: |
+          echo "🎉 Daily email notification job completed at $(date)" 

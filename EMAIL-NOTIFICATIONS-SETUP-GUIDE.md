@@ -1,6 +1,6 @@
 # Certification Expiry Email Notifications Setup Guide
 
-This guide walks you through setting up automated email notifications for expiring certifications in your StaffCertify app.
+This guide walks you through setting up automated email notifications for expiring certifications in your TeamCertify app.
 
 ## Overview
 
@@ -30,7 +30,7 @@ The system consists of:
 1. In SendGrid dashboard, go to **Settings** → **API Keys**
 2. Click **Create API Key**
 3. Choose **Restricted Access**
-4. Give it a name: `StaffCertify Email Notifications`
+4. Give it a name: `TeamCertify Email Notifications`
 5. Under **Mail Send**, select **Full Access**
 6. Click **Create & View**
 7. **Copy the API key immediately** (you won't see it again)
@@ -43,7 +43,7 @@ The system consists of:
 
 For Single Sender:
 1. Click **Create New Sender**
-2. Use email: `notifications@staffcertify.com` (or your domain)
+2. Use email: `notifications@teamcertify.com` (or your domain)
 3. Fill in the form and verify the email address
 
 ---

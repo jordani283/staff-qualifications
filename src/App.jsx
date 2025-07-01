@@ -26,85 +26,174 @@ export default function App() {
     const [page, setPage] = useState('landing');
     const [currentPageData, setCurrentPageData] = useState({});
     const [stripeSessionId, setStripeSessionId] = useState(null);
+    
+    // Use refs to track current user ID and profile across renders and auth events
+    const currentUserIdRef = useRef(null);
+    const currentProfileRef = useRef(null);
+    const isInitializedRef = useRef(false);
 
     useEffect(() => {
         const getInitialData = async () => {
+            console.log('🔄 Getting initial session data...');
             setLoading(true);
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (session?.user) {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error) {
-                    console.error('Error fetching profile in initial load:', error);
+                    console.error('Error getting initial session:', error);
+                    setLoading(false);
+                    return;
+                }
+
+                if (session?.user) {
+                    console.log('✅ Found existing session for user:', session.user.id);
+                    
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .maybeSingle();
+                    
+                    if (profileError) {
+                        console.error('Error fetching profile in initial load:', profileError);
+                    } else {
+                        console.log('✅ Profile data fetched successfully (initial load):', profile);
+                    }
+                    
+                    // Update both state and refs
+                    setUser(session.user);
+                    setProfile(profile);
+                    currentUserIdRef.current = session.user.id;
+                    currentProfileRef.current = profile;
+                    
+                    // Set default page for authenticated users with complete profiles
+                    if (profile && profile.company_name) {
+                        setPage('dashboard');
+                    }
                 } else {
-                    console.log('✅ Profile data fetched successfully (initial load):', profile);
+                    console.log('ℹ️ No existing session found');
+                    currentUserIdRef.current = null;
+                    currentProfileRef.current = null;
                 }
-                
-                setUser(session.user);
-                setProfile(profile);
-                console.log('✅ setProfile() has been called (initial load).');
-                
-                // Set default page for authenticated users with complete profiles
-                if (profile && profile.company_name) {
-                    setPage('dashboard');
-                }
+            } catch (error) {
+                console.error('Error in initial data fetch:', error);
+            } finally {
+                setLoading(false);
+                isInitializedRef.current = true;
+                console.log('✅ Initial data loading complete');
             }
-            setLoading(false);
-            console.log('✅ setLoading(false) has been called (initial load).');
         };
 
         getInitialData();
 
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`Auth state change: ${event}`, session?.user?.id || '');
+            console.log(`🔔 Auth state change: ${event}`, session?.user?.id || 'no-user');
 
-            if (event === 'SIGNED_OUT' || !session) {
+            // Handle sign out
+            if (event === 'SIGNED_OUT' || !session?.user) {
+                console.log('👋 User signed out');
                 setUser(null);
                 setProfile(null);
-                setLoading(false); // Ensure loading is false on sign out
+                currentUserIdRef.current = null;
+                currentProfileRef.current = null;
+                setLoading(false);
                 setPage('landing');
                 return;
             }
 
-            // Set user immediately, and loading to true while we fetch the profile
-            setUser(session.user);
-            setLoading(true);
-
-            // Now, fetch the profile
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-
-            if (error) {
-                console.error('Error fetching profile:', error);
-                setProfile(null); // Set profile to null on error
-            } else {
-                // THIS IS THE CRITICAL BLOCK THAT WAS MISSING
-                console.log('✅ Profile data fetched successfully:', profile);
-                setProfile(profile); // ✅ SET THE PROFILE STATE
+            // Skip processing if we're still initializing
+            if (!isInitializedRef.current) {
+                console.log('⏳ Still initializing, skipping auth state change');
+                return;
             }
 
-            // Set default page for authenticated users with complete profiles
-            if (profile && profile.company_name) {
-                setPage('dashboard');
-            }
+            // Use refs for reliable current user tracking
+            const currentUserId = currentUserIdRef.current;
+            const newUserId = session.user.id;
+            
+            // Determine if this is actually a new user or just session maintenance
+            const isActuallyNewUser = !currentUserId || currentUserId !== newUserId;
+            const hasProfileData = currentProfileRef.current !== null;
 
-            // This should be the VERY LAST thing to happen after all data is resolved.
-            setLoading(false);
-            console.log('✅ All auth processing finished. Setting loading to false.');
+            console.log('🔍 Auth change analysis:', {
+                event,
+                isActuallyNewUser,
+                hasProfileData,
+                currentUserId,
+                newUserId
+            });
+
+            // Handle different event types
+            switch (event) {
+                case 'INITIAL_SESSION':
+                    // This shouldn't happen since we handle initial session above
+                    console.log('⚠️ INITIAL_SESSION event received after initialization');
+                    break;
+
+                case 'TOKEN_REFRESHED':
+                    // Just a token refresh - do nothing, session is still valid
+                    console.log('🔄 Token refreshed silently');
+                    return;
+
+                case 'SIGNED_IN':
+                    // Only treat as new sign-in if user actually changed
+                    if (isActuallyNewUser) {
+                        console.log('🆕 New user signed in, fetching profile...');
+                        setLoading(true);
+                        
+                        try {
+                            const { data: profileData, error } = await supabase
+                                .from('profiles')
+                                .select('*')
+                                .eq('id', session.user.id)
+                                .maybeSingle();
+
+                            if (error) {
+                                console.error('Error fetching profile for new user:', error);
+                                setProfile(null);
+                                currentProfileRef.current = null;
+                            } else {
+                                console.log('✅ Profile fetched for new user:', profileData);
+                                setProfile(profileData);
+                                currentProfileRef.current = profileData;
+                                
+                                // Set default page for authenticated users with complete profiles
+                                if (profileData && profileData.company_name) {
+                                    setPage('dashboard');
+                                }
+                            }
+
+                            // Update user state and ref after successful profile fetch
+                            setUser(session.user);
+                            currentUserIdRef.current = session.user.id;
+                            
+                        } catch (error) {
+                            console.error('Profile fetch error:', error);
+                            setProfile(null);
+                            currentProfileRef.current = null;
+                        } finally {
+                            setLoading(false);
+                        }
+                    } else {
+                        // Same user, just session continuation - update user object but don't reload profile
+                        console.log('🔄 Same user session continued, no profile refetch needed');
+                        setUser(session.user);
+                        // Don't set loading to true, don't refetch profile
+                        console.log('✅ Session refresh handled silently');
+                    }
+                    break;
+
+                default:
+                    console.log(`📝 Unhandled auth event: ${event}`);
+                    break;
+            }
         });
 
         return () => {
             authListener.subscription.unsubscribe();
         };
-    }, []);
+    }, []); // Empty dependency array - refs ensure we have current values
 
     // HOOK 1: Captures the Stripe session ID from the URL on initial load
     useEffect(() => {
@@ -159,8 +248,8 @@ export default function App() {
                 .select('*')
                 .eq('id', user.id)
                 .maybeSingle();
-            currentProfile.current = profile;
             setProfile(profile);
+            currentProfileRef.current = profile; // Keep ref in sync
             setLoading(false);
             setPage('dashboard');
         }
@@ -215,7 +304,7 @@ function MainLayout({ page, profile, user, setPage, children }) {
             <nav className="bg-slate-950/70 border-r border-slate-800 w-64 p-4 flex-col flex-shrink-0 hidden md:flex">
                 <div className="flex items-center gap-3 px-2 mb-8">
                     <ShieldCheck className="text-sky-400 h-8 w-8" />
-                    <span className="font-bold text-lg text-white">StaffCertify</span>
+                    <span className="font-bold text-lg text-white">TeamCertify</span>
                 </div>
                 <div className="flex-grow space-y-2">
                     <a href="#" className={navItemClass('dashboard')} onClick={() => setPage('dashboard')}><LayoutDashboard className="mr-3 h-5 w-5" />Dashboard</a>

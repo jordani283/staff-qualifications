@@ -1,113 +1,190 @@
 #!/bin/bash
 
-# Email Notifications Deployment Script for StaffCertify
-# This script automates the deployment of certification expiry email notifications
+# =============================================================================
+# TeamCertify Email Notifications Deployment Script
+# =============================================================================
+# Automates the deployment of certification expiry email notifications
+# Prerequisites: SendGrid account + API key already configured
 
 set -e  # Exit on any error
 
-echo "🚀 Deploying StaffCertify Email Notifications System..."
-echo "=================================================="
+# Color definitions
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly BOLD='\033[1m'
+readonly NC='\033[0m'
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Helper functions
+print_header() {
+    echo -e "\n${BOLD}${BLUE}==============================================================================${NC}"
+    echo -e "${BOLD}${BLUE} $1${NC}"
+    echo -e "${BOLD}${BLUE}==============================================================================${NC}\n"
+}
 
-# Check if Supabase CLI is installed
-if ! command -v supabase &> /dev/null; then
-    echo -e "${RED}❌ Supabase CLI is not installed. Please install it first:${NC}"
-    echo "npm install -g supabase"
-    exit 1
-fi
+print_step() {
+    echo -e "${CYAN}📋 Step $1: $2${NC}"
+    echo -e "${CYAN}$(printf '%.0s-' {1..60})${NC}"
+}
 
-# Check if we're in a Supabase project
-if [ ! -f "supabase/config.toml" ]; then
-    echo -e "${RED}❌ Not in a Supabase project directory. Run 'supabase init' first.${NC}"
-    exit 1
-fi
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
 
-echo -e "${BLUE}🔍 Checking Supabase project status...${NC}"
-supabase status
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
 
-echo ""
-echo -e "${YELLOW}📋 Pre-deployment Checklist:${NC}"
-echo "1. ✅ Have you created a SendGrid account?"
-echo "2. ✅ Do you have a SendGrid API key?"
-echo "3. ✅ Have you verified your sender email in SendGrid?"
-echo "4. ✅ Have you set SENDGRID_API_KEY in Supabase environment variables?"
-echo ""
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
 
-read -p "Have you completed all the above steps? (y/N): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}⚠️  Please complete the checklist first. See EMAIL-NOTIFICATIONS-SETUP-GUIDE.md${NC}"
-    exit 1
-fi
+# Main deployment script
+main() {
+    print_header "🚀 TEAMCERTIFY EMAIL NOTIFICATIONS DEPLOYMENT"
+    
+    # Validation checks
+    validate_environment
+    
+    # Deployment steps
+    deploy_database_functions
+    deploy_edge_function
+    setup_scheduling
+    
+    # Completion
+    show_completion_summary
+}
 
-echo ""
-echo -e "${BLUE}🗄️  Step 1: Deploying database functions...${NC}"
+validate_environment() {
+    print_step "1" "Validating Environment"
+    
+    # Check Supabase CLI
+    if ! command -v supabase &> /dev/null; then
+        print_error "Supabase CLI not installed"
+        echo "Install with: npm install -g supabase"
+        exit 1
+    fi
+    print_success "Supabase CLI found"
+    
+    # Check project structure
+    if [ ! -f "supabase/config.toml" ]; then
+        print_error "Not in a Supabase project directory"
+        echo "Run 'supabase init' first"
+        exit 1
+    fi
+    print_success "Supabase project detected"
+    
+    # Check required files
+    local required_files=(
+        "certification-expiry-notifications.sql"
+        "email-notifications-setup.sql"
+        "supabase/functions/send-expiry-reminders/index.ts"
+    )
+    
+    for file in "${required_files[@]}"; do
+        if [ ! -f "$file" ]; then
+            print_error "Required file missing: $file"
+            exit 1
+        fi
+    done
+    print_success "All required files present"
+    
+    # Check Supabase status
+    echo -e "\n${BLUE}Checking Supabase connection...${NC}"
+    if supabase status --quiet; then
+        print_success "Supabase connection established"
+    else
+        print_warning "Supabase status check failed - continuing anyway"
+    fi
+    
+    echo
+}
 
-# Check if SQL files exist
-if [ ! -f "certification-expiry-notifications.sql" ]; then
-    echo -e "${RED}❌ certification-expiry-notifications.sql not found!${NC}"
-    exit 1
-fi
+deploy_database_functions() {
+    print_step "2" "Database Functions Setup"
+    
+    print_warning "Manual action required:"
+    echo "1. Open Supabase Dashboard → SQL Editor"
+    echo "2. Execute: certification-expiry-notifications.sql"
+    echo "3. This creates the expiry detection function and app_settings table"
+    echo
+    
+    read -p "Press Enter when database functions are deployed..."
+    print_success "Database functions marked as complete"
+    echo
+}
 
-echo "✅ Database function SQL files found"
+deploy_edge_function() {
+    print_step "3" "Edge Function Deployment"
+    
+    echo "Deploying send-expiry-reminders function..."
+    
+    if supabase functions deploy send-expiry-reminders; then
+        print_success "Edge function deployed successfully"
+    else
+        print_error "Edge function deployment failed"
+        echo "Check your network connection and Supabase authentication"
+        exit 1
+    fi
+    echo
+}
 
-echo ""
-echo -e "${BLUE}☁️  Step 2: Deploying Edge Function...${NC}"
+setup_scheduling() {
+    print_step "4" "Scheduling Configuration"
+    
+    print_warning "Manual action required:"
+    echo "1. Open Supabase Dashboard → SQL Editor"
+    echo "2. Execute: email-notifications-setup.sql"
+    echo "3. This sets up the daily cron job (9:00 AM UTC)"
+    echo
+    
+    read -p "Press Enter when scheduling is configured..."
+    print_success "Scheduling marked as complete"
+    echo
+}
 
-# Check if Edge Function exists
-if [ ! -f "supabase/functions/send-expiry-reminders/index.ts" ]; then
-    echo -e "${RED}❌ Edge function not found at supabase/functions/send-expiry-reminders/index.ts${NC}"
-    exit 1
-fi
+show_completion_summary() {
+    print_header "🎉 DEPLOYMENT COMPLETE"
+    
+    echo -e "${GREEN}✅ Email notification system successfully deployed!${NC}\n"
+    
+    echo -e "${BOLD}📋 FINAL CONFIGURATION STEPS:${NC}"
+    echo -e "${CYAN}$(printf '%.0s-' {1..40})${NC}"
+    
+    echo -e "\n${YELLOW}1. Configure Admin Settings:${NC}"
+    echo "   Go to Supabase Dashboard → SQL Editor and run:"
+    echo -e "${BLUE}   UPDATE app_settings SET value = 'your-admin@company.com' WHERE key = 'admin_email';${NC}"
+    echo -e "${BLUE}   UPDATE app_settings SET value = 'https://yourdomain.com' WHERE key = 'app_base_url';${NC}"
+    
+    echo -e "\n${YELLOW}2. Test the System:${NC}"
+    echo "   Run this in SQL Editor:"
+    echo -e "${BLUE}   SELECT trigger_expiry_reminders();${NC}"
+    
+    echo -e "\n${YELLOW}3. Monitor Execution:${NC}"
+    echo "   Check cron jobs:"
+    echo -e "${BLUE}   SELECT * FROM cron.job;${NC}"
+    echo "   View execution history:"
+    echo -e "${BLUE}   SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;${NC}"
+    
+    echo -e "\n${YELLOW}4. Verify SendGrid Integration:${NC}"
+    echo "   • Check SENDGRID_API_KEY is set in Supabase environment variables"
+    echo "   • Ensure sender email is verified in SendGrid"
+    echo "   • Monitor SendGrid dashboard for delivery statistics"
+    
+    echo -e "\n${BOLD}📖 Documentation:${NC}"
+    echo "   • Complete guide: EMAIL-NOTIFICATIONS-SETUP-GUIDE.md"
+    echo "   • Testing queries: test-email-notifications.sql"
+    
+    echo -e "\n${BOLD}🕘 Schedule:${NC}"
+    echo "   • Emails sent daily at 9:00 AM UTC"
+    echo "   • Only for certifications expiring TODAY"
+    echo "   • Both staff and admin notifications"
+    
+    echo -e "\n${GREEN}${BOLD}🚀 Your certification expiry email system is now active!${NC}"
+    echo
+}
 
-echo "📤 Deploying send-expiry-reminders function..."
-supabase functions deploy send-expiry-reminders
-
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Edge function deployed successfully!${NC}"
-else
-    echo -e "${RED}❌ Edge function deployment failed!${NC}"
-    exit 1
-fi
-
-echo ""
-echo -e "${BLUE}⏰ Step 3: Setting up scheduling...${NC}"
-
-if [ ! -f "email-notifications-setup.sql" ]; then
-    echo -e "${RED}❌ email-notifications-setup.sql not found!${NC}"
-    exit 1
-fi
-
-echo "✅ Scheduling SQL file found"
-
-echo ""
-echo -e "${GREEN}🎉 Deployment Complete!${NC}"
-echo "=================================================="
-echo ""
-echo -e "${YELLOW}📋 Next Steps:${NC}"
-echo ""
-echo "1. 🗄️  Run database setup:"
-echo "   - Go to Supabase Dashboard → SQL Editor"
-echo "   - Execute: certification-expiry-notifications.sql"
-echo "   - Execute: email-notifications-setup.sql"
-echo ""
-echo "2. ⚙️  Configure settings:"
-echo "   UPDATE app_settings SET value = 'your-admin@company.com' WHERE key = 'admin_email';"
-echo "   UPDATE app_settings SET value = 'https://yourdomain.com' WHERE key = 'app_base_url';"
-echo ""
-echo "3. 🧪 Test the system:"
-echo "   SELECT trigger_expiry_reminders();"
-echo ""
-echo "4. 📊 Monitor execution:"
-echo "   SELECT * FROM cron.job;"
-echo "   SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 5;"
-echo ""
-echo -e "${BLUE}📖 For detailed instructions, see: EMAIL-NOTIFICATIONS-SETUP-GUIDE.md${NC}"
-echo ""
-echo -e "${GREEN}✨ Your certification expiry email system is ready!${NC}" 
+# Run the main function
+main "$@" 

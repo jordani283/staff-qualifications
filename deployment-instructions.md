@@ -119,4 +119,4 @@ Once deployed, your subscription system is fully functional:
 - ✅ Customer portal manages payment methods
 - ✅ Invoices are automatically tracked
 
-Your StaffCertify app now has production-ready billing! 🚀 
+Your TeamCertify app now has production-ready billing! 🚀 

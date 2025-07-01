@@ -396,7 +396,7 @@ export default function SubscriptionPage({ user }) {
                                                 Contact us for downgrades
                                             </div>
                                             <div className="flex gap-2">
-                                                <a href="mailto:support@staffcertify.com" className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-center text-sm flex items-center justify-center gap-1">
+                                                <a href="mailto:support@teamcertify.com" className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-center text-sm flex items-center justify-center gap-1">
                                                     <Mail className="w-3 h-3" />
                                                     Email
                                                 </a>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds a comprehensive, immutable audit trail feature to the StaffCertify web app. Every significant action taken on certifications is automatically logged with detailed information about what changed, who made the change, and when.
+This implementation adds a comprehensive, immutable audit trail feature to the TeamCertify web app. Every significant action taken on certifications is automatically logged with detailed information about what changed, who made the change, and when.
 
 ## Features
 
@@ -295,4 +295,4 @@ SELECT * FROM certification_audit_logs ORDER BY created_at DESC LIMIT 20;
 - No historical data is lost
 - Sample audit data in existing components is replaced with real data
 
-This implementation provides a robust, secure, and user-friendly audit trail system that enhances transparency and accountability in the StaffCertify application. 
+This implementation provides a robust, secure, and user-friendly audit trail system that enhances transparency and accountability in the TeamCertify application. 

@@ -2,7 +2,7 @@
 
 ## ✅ What Was Just Implemented
 
-Your StaffCertify app now has a **complete subscription management system**:
+Your TeamCertify app now has a **complete subscription management system**:
 
 ### Database & Backend
 - 🗄️ **Complete database schema** with subscription tables, RLS policies, and sample plans
@@ -73,4 +73,4 @@ Check the comprehensive guide in `stripe-integration-guide.md` - it includes:
 - Testing procedures
 - Security best practices
 
-Your StaffCertify app is now ready for professional billing! 🎉 
+Your TeamCertify app is now ready for professional billing! 🎉 

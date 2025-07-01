@@ -2,7 +2,7 @@
 
 ## Overview
 
-Your StaffCertify app now has a complete subscription management system! This guide walks you through setting up Stripe integration to make it fully functional.
+Your TeamCertify app now has a complete subscription management system! This guide walks you through setting up Stripe integration to make it fully functional.
 
 ## ✅ What's Already Implemented
 
@@ -457,7 +457,7 @@ const response = await fetch(`${API_BASE_URL}/stripe-checkout`, {
 If you need help with implementation:
 - Check Stripe documentation: https://stripe.com/docs
 - Supabase Edge Functions: https://supabase.com/docs/guides/functions
-- StaffCertify support: support@staffcertify.com
+- TeamCertify support: support@teamcertify.com
 
 ---
 
@@ -472,4 +472,4 @@ Once you complete these steps, your users will have full subscription management
 - ✅ Automatic status updates
 - ✅ Customer portal access
 
-Your StaffCertify app is now ready for production billing! 🚀 
+Your TeamCertify app is now ready for production billing! 🚀 

@@ -9,7 +9,7 @@ A reusable React modal component for displaying detailed certification informati
 - **Smooth Animations**: Fade-in/fade-out effects with backdrop blur
 - **Document Actions**: View/download buttons for certification documents
 - **Audit Trail**: Historical activity tracking for each certification
-- **Professional Styling**: Consistent with StaffCertify app design using Tailwind CSS
+- **Professional Styling**: Consistent with TeamCertify app design using Tailwind CSS
 
 ## Usage
 
@@ -75,7 +75,7 @@ function MyComponent() {
 
 ## Styling
 
-The component uses Tailwind CSS classes consistent with the StaffCertify app:
+The component uses Tailwind CSS classes consistent with the TeamCertify app:
 - Dark theme with slate colors
 - Sky blue accents for interactive elements
 - Status-specific colors (green for valid, amber for expiring, red for expired)
@@ -83,7 +83,7 @@ The component uses Tailwind CSS classes consistent with the StaffCertify app:
 
 ## Demo
 
-A complete demonstration is available at the "Modal Demo" page in the StaffCertify app navigation, which shows:
+A complete demonstration is available at the "Modal Demo" page in the TeamCertify app navigation, which shows:
 - Sample certifications with different statuses
 - Interactive table rows that open the modal
 - Complete audit trail examples
