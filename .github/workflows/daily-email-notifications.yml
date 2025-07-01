@@ -43,4 +43,4 @@ jobs:
 
       - name: Log Completion
         run: |
-          echo "🎉 Daily email notification job completed at $(date)" 
+          echo "🎉 Daily email notification job completed at $(date)"

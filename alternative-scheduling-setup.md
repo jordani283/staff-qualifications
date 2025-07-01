@@ -126,4 +126,4 @@ Add to `vercel.json`:
 - ✅ Easy to set up
 - ✅ Version controlled
 - ✅ Can add logging and monitoring
-- ✅ No external dependencies 
+- ✅ No external dependencies
