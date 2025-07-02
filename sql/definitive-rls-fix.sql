@@ -206,11 +206,9 @@ SELECT
       THEN p.last_name
       ELSE NULL
     END,
-    au.email,
     'Unknown User'
   ) as performed_by
 FROM public.certification_audit_logs cal
-LEFT JOIN auth.users au ON cal.user_id = au.id
 LEFT JOIN public.profiles p ON cal.user_id = p.id
 ORDER BY cal.created_at DESC;
 

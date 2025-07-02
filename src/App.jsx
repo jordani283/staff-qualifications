@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import {
-    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut
+    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3
 } from 'lucide-react';
 import { Spinner } from './components/ui';
 import { useTrialStatus } from './hooks/useTrialStatus.js';
@@ -19,6 +19,7 @@ import StaffPage from './pages/StaffPage';
 import StaffDetailPage from './pages/StaffDetailPage';
 import CertificatesPage from './pages/CertificatesPage';
 import ActivitiesPage from './pages/ActivitiesPage';
+import GapAnalysisPage from './pages/GapAnalysisPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 
 // --- Main App Component ---
@@ -384,6 +385,7 @@ function MainLayout({ page, profile, user, setPage, children }) {
                     <a href="#" className={navItemClass('staff')} onClick={() => setPage('staff')}><Users className="mr-3 h-5 w-5" />Staff</a>
                     <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
                     <a href="#" className={navItemClass('activities')} onClick={() => setPage('activities')}><Clock className="mr-3 h-5 w-5" />Activities</a>
+                    <a href="#" className={navItemClass('gapanalysis')} onClick={() => setPage('gapanalysis')}><BarChart3 className="mr-3 h-5 w-5" />Gap Analysis</a>
                     <a href="#" className={navItemClass('subscription')} onClick={() => setPage('subscription')}><CreditCard className="mr-3 h-5 w-5" />Subscription</a>
                 </div>
                 <div className="text-sm">
@@ -408,6 +410,7 @@ function PageContent({ page, currentPageData, setPage, user, profile, session, o
         case 'staffDetail': return <StaffDetailPage currentPageData={currentPageData} setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'activities': return <ActivitiesPage user={user} session={session} />;
+        case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'subscription': return <SubscriptionPage user={user} session={session} />;
         default: return <div>Page not found</div>;
     }

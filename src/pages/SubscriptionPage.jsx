@@ -133,6 +133,8 @@ export default function SubscriptionPage({ user }) {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'active': return <CheckCircle className="w-5 h-5 text-green-400" />;
+            case 'trial': return <Crown className="w-5 h-5 text-blue-400" />;
+            case 'trial_expired': return <XCircle className="w-5 h-5 text-red-400" />;
             case 'trialing': return <Crown className="w-5 h-5 text-blue-400" />;
             case 'past_due': return <AlertTriangle className="w-5 h-5 text-amber-400" />;
             case 'canceled': return <XCircle className="w-5 h-5 text-red-400" />;
@@ -187,31 +189,87 @@ export default function SubscriptionPage({ user }) {
                             <h3 className="text-sm font-medium text-slate-300 mb-2">Current Plan</h3>
                             <div className="flex items-center gap-3">
                                 <span className="text-2xl font-bold text-white">
-                                    {subscription?.plan_name || 'Starter'}
+                                    {subscription?.subscription_status === 'trial' 
+                                        ? `${subscription?.plan_name || 'Starter'} Trial`
+                                        : subscription?.subscription_status === 'trial_expired'
+                                        ? `${subscription?.plan_name || 'Starter'} Trial (Expired)`
+                                        : (subscription?.plan_name || 'Starter')
+                                    }
                                 </span>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusDisplay.color}`}>
                                     {statusDisplay.text}
                                 </span>
                             </div>
                             <p className="text-slate-400 text-sm mt-1">
-                                {subscription?.plan_description || 'Perfect for small teams getting started'}
+                                {subscription?.subscription_status === 'trial' 
+                                    ? 'Exploring all features with full access during your free trial period.'
+                                    : subscription?.subscription_status === 'trial_expired'
+                                    ? 'Your trial has ended. Upgrade to restore full access to all features.'
+                                    : (subscription?.plan_description || 'Perfect for small teams getting started with staff qualifications tracking.')
+                                }
                             </p>
                         </div>
 
                         <div>
                             <h4 className="text-sm font-medium text-slate-300 mb-2">Billing</h4>
                             <div className="text-white">
-                                {subscription?.current_price ? formatPrice(subscription.current_price) : '£49'} 
-                                <span className="text-slate-400 text-sm ml-1">
-                                    / {subscription?.billing_cycle || 'month'}
-                                </span>
+                                {subscription?.subscription_status === 'trial' ? (
+                                    <>
+                                        <span className="text-green-400 font-semibold">Free</span>
+                                        <span className="text-slate-400 text-sm ml-1">during trial</span>
+                                    </>
+                                ) : subscription?.subscription_status === 'trial_expired' ? (
+                                    <>
+                                        <span className="text-red-400 font-semibold">Trial Ended</span>
+                                        <span className="text-slate-400 text-sm ml-1">upgrade required</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {subscription?.current_price ? formatPrice(subscription.current_price) : '£49'} 
+                                        <span className="text-slate-400 text-sm ml-1">
+                                            / {subscription?.billing_cycle || 'monthly'}
+                                        </span>
+                                    </>
+                                )}
                             </div>
+                            {subscription?.subscription_status === 'trial' && (
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Then {subscription?.current_price ? formatPrice(subscription.current_price) : '£49'} / {subscription?.billing_cycle || 'monthly'}
+                                </div>
+                            )}
+                            {subscription?.subscription_status === 'trial_expired' && (
+                                <div className="text-xs text-red-400 mt-1">
+                                    Upgrade to {subscription?.current_price ? formatPrice(subscription.current_price) : '£49'} / {subscription?.billing_cycle || 'monthly'}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Dates */}
                     <div className="space-y-4">
-                        {subscription?.current_period_end && (
+                        {/* Trial End Date - check both trial_ends_at (profiles) and trial_end (Stripe) */}
+                        {((subscription?.trial_ends_at && new Date(subscription.trial_ends_at) > new Date()) || 
+                          (subscription?.trial_end && new Date(subscription.trial_end) > new Date())) && (
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-300 mb-1">Trial Ends</h4>
+                                <div className="flex items-center gap-2 text-white">
+                                    <Crown className="w-4 h-4 text-blue-400" />
+                                    {formatDate(subscription.trial_ends_at || subscription.trial_end)}
+                                </div>
+                                {/* Show days remaining */}
+                                <div className="text-sm text-blue-400 mt-1">
+                                    {(() => {
+                                        const trialEndDate = new Date(subscription.trial_ends_at || subscription.trial_end);
+                                        const today = new Date();
+                                        const daysRemaining = Math.ceil((trialEndDate - today) / (1000 * 60 * 60 * 24));
+                                        return daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Trial expires today';
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Current period end for active subscriptions */}
+                        {subscription?.current_period_end && subscription?.subscription_status !== 'trial' && (
                             <div>
                                 <h4 className="text-sm font-medium text-slate-300 mb-1">
                                     {subscription?.cancel_at_period_end ? 'Cancels On' : 'Renews On'}
@@ -223,12 +281,18 @@ export default function SubscriptionPage({ user }) {
                             </div>
                         )}
 
-                        {subscription?.trial_end && new Date(subscription.trial_end) > new Date() && (
+                        {/* Trial expired notice */}
+                        {subscription?.subscription_status === 'trial' && 
+                         subscription?.trial_ends_at && 
+                         new Date(subscription.trial_ends_at) <= new Date() && (
                             <div>
-                                <h4 className="text-sm font-medium text-slate-300 mb-1">Trial Ends</h4>
-                                <div className="flex items-center gap-2 text-white">
-                                    <Crown className="w-4 h-4 text-blue-400" />
-                                    {formatDate(subscription.trial_end)}
+                                <h4 className="text-sm font-medium text-red-300 mb-1">Trial Expired</h4>
+                                <div className="flex items-center gap-2 text-red-400">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    {formatDate(subscription.trial_ends_at)}
+                                </div>
+                                <div className="text-sm text-red-400 mt-1">
+                                    Please upgrade to continue using the service
                                 </div>
                             </div>
                         )}
@@ -236,7 +300,32 @@ export default function SubscriptionPage({ user }) {
 
                     {/* Actions */}
                     <div className="space-y-3">
-                        {subscription?.cancel_at_period_end ? (
+                        {subscription?.subscription_status === 'trial' ? (
+                            /* Active trial user actions */
+                            <div className="text-center py-2">
+                                <div className="text-sm text-slate-400 mb-2">
+                                    Trial in progress
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    Choose a plan below to upgrade
+                                </div>
+                            </div>
+                        ) : subscription?.subscription_status === 'trial_expired' ? (
+                            /* Expired trial user actions */
+                            <div className="text-center py-2">
+                                <div className="text-sm text-red-300 mb-2 font-medium">
+                                    Trial Expired
+                                </div>
+                                <div className="text-xs text-red-400 mb-3">
+                                    Please upgrade to continue using the service
+                                </div>
+                                <div className="bg-red-600/20 border border-red-600 rounded-md p-3">
+                                    <div className="text-xs text-red-300">
+                                        Choose a plan below to restore access
+                                    </div>
+                                </div>
+                            </div>
+                        ) : subscription?.cancel_at_period_end ? (
                             <button
                                 onClick={handleReactivateSubscription}
                                 disabled={actionLoading === 'reactivate'}

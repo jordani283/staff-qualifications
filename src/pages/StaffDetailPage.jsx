@@ -151,9 +151,64 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const [selectedCertification, setSelectedCertification] = useState(null);
     const [auditTrail, setAuditTrail] = useState([]);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [issueDate, setIssueDate] = useState('');
+    const [expiryDate, setExpiryDate] = useState('');
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
     // Get feature access permissions
     const { canCreate, canDelete, canAssign, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
+
+    // Utility function to calculate expiry date based on template validity period
+    const calculateExpiryDate = useCallback((templateId, issueDateValue) => {
+        const template = templates.find(t => t.id === templateId);
+        
+        if (template && issueDateValue && template.validity_period_months) {
+            const date = new Date(issueDateValue + 'T00:00:00');
+            const validityMonths = parseInt(template.validity_period_months);
+            date.setMonth(date.getMonth() + validityMonths);
+            return date.toISOString().split('T')[0];
+        }
+        return '';
+    }, [templates]);
+
+    // Handle issue date changes
+    const handleIssueDateChange = (e) => {
+        const newIssueDate = e.target.value;
+        setIssueDate(newIssueDate);
+        if (selectedTemplateId) {
+            setExpiryDate(calculateExpiryDate(selectedTemplateId, newIssueDate));
+        }
+    };
+
+    // Handle template selection changes
+    const handleTemplateChange = (e) => {
+        const templateId = e.target.value;
+        setSelectedTemplateId(templateId);
+        if (issueDate) {
+            setExpiryDate(calculateExpiryDate(templateId, issueDate));
+        }
+    };
+
+    // Initialize dates when dialog opens
+    useEffect(() => {
+        if (showAssignDialog) {
+            // Default issue date to today
+            const today = new Date().toISOString().split('T')[0];
+            setIssueDate(today);
+            setExpiryDate('');
+            setSelectedTemplateId('');
+        }
+    }, [showAssignDialog]);
+
+    // Recalculate expiry date when templates are loaded or when issue date/template changes
+    useEffect(() => {
+        if (issueDate && selectedTemplateId && templates.length > 0) {
+            const calculatedExpiry = calculateExpiryDate(selectedTemplateId, issueDate);
+            if (calculatedExpiry && calculatedExpiry !== expiryDate) {
+                setExpiryDate(calculatedExpiry);
+            }
+        }
+    }, [issueDate, selectedTemplateId, templates, calculateExpiryDate]);
 
     const fetchStaffCertifications = useCallback(async () => {
         if (!session) {
@@ -178,7 +233,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         // Fetch available certificate templates
         const { data: templateData, error: templateError } = await supabase
             .from('certification_templates')
-            .select('*');
+            .select('id, name, validity_period_months');
         
         if (templateError) {
             showToast("Error fetching certificate templates.", "error");
@@ -238,6 +293,9 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         } else {
             showToast('Certification assigned!', 'success');
             setShowAssignDialog(false);
+            setIssueDate('');
+            setExpiryDate('');
+            setSelectedTemplateId('');
             fetchStaffCertifications();
         }
     };
@@ -425,11 +483,23 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             </div>
             
             {showAssignDialog && canAssign && (
-                <Dialog id="assign-certification-dialog" title="Assign Certification" onClose={() => setShowAssignDialog(false)}>
+                <Dialog id="assign-certification-dialog" title="Assign Certification" onClose={() => {
+                    setShowAssignDialog(false);
+                    setIssueDate('');
+                    setExpiryDate('');
+                    setSelectedTemplateId('');
+                }}>
                     <form id="assign-certification-form" onSubmit={handleAssignCertification} className="space-y-4">
                         <div>
                             <label htmlFor="template_id" className="block text-sm font-medium text-slate-300 mb-1">Certificate Type</label>
-                            <select id="template_id" name="template_id" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500">
+                            <select 
+                                id="template_id" 
+                                name="template_id" 
+                                value={selectedTemplateId}
+                                onChange={handleTemplateChange}
+                                required 
+                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500"
+                            >
                                 <option value="">Select a certificate type...</option>
                                 {templates.map(template => (
                                     <option key={template.id} value={template.id}>{template.name}</option>
@@ -438,11 +508,27 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                         </div>
                         <div>
                             <label htmlFor="issue_date" className="block text-sm font-medium text-slate-300 mb-1">Issue Date</label>
-                            <input id="issue_date" name="issue_date" type="date" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <input 
+                                id="issue_date" 
+                                name="issue_date" 
+                                type="date" 
+                                value={issueDate}
+                                onChange={handleIssueDateChange}
+                                required 
+                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" 
+                            />
                         </div>
                         <div>
                             <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-300 mb-1">Expiry Date</label>
-                            <input id="expiry_date" name="expiry_date" type="date" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <input 
+                                id="expiry_date" 
+                                name="expiry_date" 
+                                type="date" 
+                                value={expiryDate}
+                                onChange={(e) => setExpiryDate(e.target.value)}
+                                required 
+                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" 
+                            />
                         </div>
                         <div>
                             <label htmlFor="document" className="block text-sm font-medium text-slate-300 mb-1">Document (Optional)</label>
@@ -453,7 +539,18 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             <textarea id="notes" name="notes" rows="3" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
                         </div>
                         <div className="flex justify-end pt-4 gap-3">
-                            <button type="button" onClick={() => setShowAssignDialog(false)} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    setShowAssignDialog(false);
+                                    setIssueDate('');
+                                    setExpiryDate('');
+                                    setSelectedTemplateId('');
+                                }} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Cancel
+                            </button>
                             <button type="submit" form="assign-certification-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Assign Certification</button>
                         </div>
                     </form>

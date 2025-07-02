@@ -214,6 +214,16 @@ export function getSubscriptionStatusDisplay(status) {
             text: 'Active',
             description: 'Your subscription is active and current'
         },
+        'trial': { 
+            color: 'text-blue-400 bg-blue-400/10', 
+            text: 'Trial',
+            description: 'You are currently on a free trial'
+        },
+        'trial_expired': { 
+            color: 'text-red-400 bg-red-400/10', 
+            text: 'Trial Expired',
+            description: 'Your trial has expired. Please upgrade to continue using the service.'
+        },
         'trialing': { 
             color: 'text-blue-400 bg-blue-400/10', 
             text: 'Trial',

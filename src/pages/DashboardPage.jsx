@@ -92,8 +92,8 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
         let filteredCerts = certsData;
 
         // Apply filters
-        if (filters.staffFilter && filters.staffFilter !== 'all') {
-            filteredCerts = filteredCerts.filter(cert => cert.staff_id === filters.staffFilter);
+        if (filters.staffId && filters.staffId !== '') {
+            filteredCerts = filteredCerts.filter(cert => cert.staff_id === filters.staffId);
         }
 
         if (filters.statusFilter && filters.statusFilter !== 'all') {
@@ -113,8 +113,8 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
                 }
                 expiryGroups[dateKey].count++;
                 expiryGroups[dateKey].certDetails.push({
-                    staffName: cert.staff_name,
-                    certName: cert.template_name,
+                    staff_name: cert.staff_name,
+                    template_name: cert.template_name,
                     status: cert.status
                 });
             }
@@ -123,14 +123,19 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
         // Create chart data array
         let chartDataArray = [];
         
-        // Get date range (next 12 months)
+        // Use the date range from filters or default to next 30 days
         const today = new Date();
-        const oneYearFromNow = new Date();
-        oneYearFromNow.setFullYear(today.getFullYear() + 1);
+        let start, end;
         
-        // Set start and end dates
-        const start = new Date(today);
-        const end = new Date(oneYearFromNow);
+        if (filters.startDate && filters.endDate) {
+            start = new Date(filters.startDate);
+            end = new Date(filters.endDate);
+        } else {
+            // Default to next 30 days
+            start = new Date(today);
+            end = new Date(today);
+            end.setDate(today.getDate() + 30);
+        }
         
         // Determine if we should group by weeks (for longer ranges)
         const daysDifference = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
