@@ -4,12 +4,19 @@ import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Plus, Trash2 } from 'lucide-react';
 
-export default function CertificatesPage({ user }) {
+export default function CertificatesPage({ user, session }) {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [templateToDelete, setTemplateToDelete] = useState(null);
 
     const fetchTemplates = useCallback(async () => {
+        if (!session) {
+            setLoading(false);
+            return;
+        }
+        
         setLoading(true);
         const { data, error } = await supabase.from('certification_templates').select('*').order('name');
         if(error) {
@@ -18,7 +25,7 @@ export default function CertificatesPage({ user }) {
             setTemplates(data);
         }
         setLoading(false);
-    }, []);
+    }, [session]);
 
     useEffect(() => {
         fetchTemplates();
@@ -26,6 +33,11 @@ export default function CertificatesPage({ user }) {
 
     const handleAddTemplate = async (e) => {
         e.preventDefault();
+        if (!session) {
+            showToast('No active session.', 'error');
+            return;
+        }
+        
         const formData = new FormData(e.target);
         const newTemplate = {
             user_id: user.id,
@@ -42,16 +54,28 @@ export default function CertificatesPage({ user }) {
         }
     };
     
-    const handleDeleteTemplate = async (id) => {
-        if(confirm('Are you sure you want to delete this certificate? This will also delete all assigned certifications of this type.')) {
-            const { error } = await supabase.from('certification_templates').delete().eq('id', id);
-            if(error) {
-                showToast(error.message, 'error');
-            } else {
-                showToast('Certificate deleted.', 'success');
-                fetchTemplates();
-            }
+    const confirmDeleteTemplate = (template) => {
+        setTemplateToDelete(template);
+        setShowDeleteDialog(true);
+    };
+
+    const handleDeleteTemplate = async () => {
+        if (!session || !templateToDelete) {
+            showToast('No active session.', 'error');
+            return;
         }
+        
+        const { error } = await supabase.from('certification_templates').delete().eq('id', templateToDelete.id);
+        if(error) {
+            showToast(error.message, 'error');
+        } else {
+            showToast('Certificate deleted.', 'success');
+            fetchTemplates();
+        }
+        
+        // Close dialog and reset state
+        setShowDeleteDialog(false);
+        setTemplateToDelete(null);
     };
 
     return (
@@ -82,7 +106,7 @@ export default function CertificatesPage({ user }) {
                                         <td className="p-4 font-medium text-white">{template.name}</td>
                                         <td className="p-4 text-slate-300">{template.validity_period_months}</td>
                                         <td className="p-4 text-right">
-                                            <button onClick={() => handleDeleteTemplate(template.id)} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                                            <button onClick={() => confirmDeleteTemplate(template)} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -107,6 +131,33 @@ export default function CertificatesPage({ user }) {
                            <button type="submit" form="add-template-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Add Certificate</button>
                         </div>
                     </form>
+                                 </Dialog>
+            )}
+            
+            {showDeleteDialog && templateToDelete && (
+                <Dialog id="delete-template-dialog" title="Confirm Deletion" onClose={() => setShowDeleteDialog(false)}>
+                    <div className="space-y-4">
+                        <p className="text-slate-300">
+                            Are you sure you want to delete the certificate template <span className="font-semibold text-white">"{templateToDelete.name}"</span>?
+                        </p>
+                        <p className="text-red-400 text-sm">
+                            This action cannot be undone and will also delete all assigned certifications of this type.
+                        </p>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button 
+                                onClick={() => setShowDeleteDialog(false)} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleDeleteTemplate} 
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Delete Certificate
+                            </button>
+                        </div>
+                    </div>
                 </Dialog>
             )}
         </>

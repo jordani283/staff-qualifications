@@ -4,12 +4,17 @@ import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Plus } from 'lucide-react';
 
-export default function StaffPage({ setPage, user }) {
+export default function StaffPage({ setPage, user, session }) {
     const [staffWithCerts, setStaffWithCerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
 
     const fetchStaffAndCerts = useCallback(async () => {
+        if (!session) {
+            setLoading(false);
+            return;
+        }
+        
         setLoading(true);
 
         const { data: staff, error: staffError } = await supabase.from('staff').select('*').order('created_at');
@@ -43,7 +48,7 @@ export default function StaffPage({ setPage, user }) {
         
         setStaffWithCerts(combinedData);
         setLoading(false);
-    }, []);
+    }, [session]);
 
     useEffect(() => {
         fetchStaffAndCerts();
@@ -51,6 +56,11 @@ export default function StaffPage({ setPage, user }) {
     
     const handleAddStaff = async (e) => {
         e.preventDefault();
+        if (!session) {
+            showToast('No active session.', 'error');
+            return;
+        }
+        
         const formData = new FormData(e.target);
         const newStaff = {
             user_id: user.id,

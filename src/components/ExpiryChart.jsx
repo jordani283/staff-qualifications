@@ -52,7 +52,7 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-export default function ExpiryChart({ data, loading, onFiltersChange }) {
+export default function ExpiryChart({ data, loading, onFiltersChange, session }) {
     const [staffMembers, setStaffMembers] = useState([]);
     const [selectedStaff, setSelectedStaff] = useState('');
     const [startDate, setStartDate] = useState(() => {
@@ -68,11 +68,18 @@ export default function ExpiryChart({ data, loading, onFiltersChange }) {
 
     useEffect(() => {
         const fetchStaffMembers = async () => {
+            if (!session) {
+                // CRITICAL: Clear staff members when no session
+                setStaffMembers([]);
+                setSelectedStaff('');
+                return;
+            }
+            
             const { data: staff } = await supabase.from('staff').select('id, full_name').order('full_name');
             setStaffMembers(staff || []);
         };
         fetchStaffMembers();
-    }, []);
+    }, [session]);
 
     useEffect(() => {
         if (onFiltersChange) {

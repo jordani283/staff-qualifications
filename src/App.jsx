@@ -281,9 +281,12 @@ export default function App() {
     } else if (user && (!profile || !profile.company_name)) {
         pageContent = <OnboardingPage user={user} onProfileUpdate={handleProfileUpdate} />;
     } else {
+        // Create session object at App level for consistent user tracking
+        const session = user ? { user } : null;
+        
         pageContent = (
             <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage}>
-                <PageContent page={page} currentPageData={currentPageData} setPage={handleSetPage} user={user} profile={profile} />
+                <PageContent page={page} currentPageData={currentPageData} setPage={handleSetPage} user={user} profile={profile} session={session} />
             </MainLayout>
         );
     }
@@ -328,14 +331,14 @@ function MainLayout({ page, profile, user, setPage, children }) {
     );
 }
 
-function PageContent({ page, currentPageData, setPage, user, profile }) {
+function PageContent({ page, currentPageData, setPage, user, profile, session }) {
     switch (page) {
-        case 'dashboard': return <DashboardPage profile={profile} />;
-        case 'staff': return <StaffPage setPage={setPage} user={user} />;
-        case 'staffDetail': return <StaffDetailPage staffMember={currentPageData.staffMember} setPage={setPage} user={user} />;
-        case 'certificates': return <CertificatesPage user={user} />;
-        case 'activities': return <ActivitiesPage user={user} />;
-        case 'subscription': return <SubscriptionPage user={user} />;
+        case 'dashboard': return <DashboardPage profile={profile} session={session} />;
+        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} />;
+        case 'staffDetail': return <StaffDetailPage staffMember={currentPageData.staffMember} setPage={setPage} user={user} session={session} />;
+        case 'certificates': return <CertificatesPage user={user} session={session} />;
+        case 'activities': return <ActivitiesPage user={user} session={session} />;
+        case 'subscription': return <SubscriptionPage user={user} session={session} />;
         default: return <div>Page not found</div>;
     }
 }

@@ -6,7 +6,7 @@ import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
 import { fetchAuditTrail } from '../utils/auditLogger.js';
 
-export default function DashboardPage({ profile }) {
+export default function DashboardPage({ profile, session }) {
     const [metrics, setMetrics] = useState({ green: 0, amber: 0, red: 0 });
     const [certs, setCerts] = useState([]);
     const [chartData, setChartData] = useState([]);
@@ -15,10 +15,37 @@ export default function DashboardPage({ profile }) {
     const [selectedCertification, setSelectedCertification] = useState(null);
     const [showCertModal, setShowCertModal] = useState(false);
     const [auditTrail, setAuditTrail] = useState([]);
+    const [currentUserId, setCurrentUserId] = useState(null);
 
     const fetchDashboardData = useCallback(async () => {
+        if (!session) {
+            // CRITICAL: Clear all state when no session
+            setMetrics({ green: 0, amber: 0, red: 0 });
+            setCerts([]);
+            setChartData([]);
+            setAllCerts([]);
+            setCurrentUserId(null);
+            setLoading(false);
+            return;
+        }
+        
+        // CRITICAL: Check if user changed - clear stale data
+        const newUserId = session.user.id;
+        if (currentUserId && currentUserId !== newUserId) {
+            console.log('🔄 User changed from', currentUserId, 'to', newUserId, '- clearing stale data');
+            setMetrics({ green: 0, amber: 0, red: 0 });
+            setCerts([]);
+            setChartData([]);
+            setAllCerts([]);
+        }
+        setCurrentUserId(newUserId);
+        
         setLoading(true);
         const { data, error } = await supabase.from('v_certifications_with_status').select('*');
+        
+        // DEBUGGING: Log what the database returns for this user
+        console.log('RAW DATA FROM VIEW for user ' + session.user.id, data);
+        
         if (error) {
             console.error("Error fetching dashboard data:", error);
             showToast("Error loading data.", "error");
@@ -48,7 +75,7 @@ export default function DashboardPage({ profile }) {
             });
         }
         setLoading(false);
-    }, []);
+    }, [session, currentUserId]);
 
     const updateChartData = useCallback((data, filters) => {
         const { startDate, endDate, staffId } = filters;
@@ -155,7 +182,16 @@ export default function DashboardPage({ profile }) {
     }, [fetchDashboardData]);
     
     const handleExportCsv = async () => {
+        if (!session) {
+            showToast('No active session for export.', 'error');
+            return;
+        }
+        
         const { data, error } = await supabase.from('v_certifications_with_status').select('*');
+        
+        // DEBUGGING: Log what the database returns for export
+        console.log('EXPORT DATA FROM VIEW for user ' + session.user.id, data);
+        
         if (error) {
             showToast('Failed to fetch data for export.', 'error');
             return;
@@ -241,7 +277,7 @@ export default function DashboardPage({ profile }) {
 
             {/* Certificate Expiry Chart */}
             <div className="mb-8">
-                <ExpiryChart data={chartData} loading={loading} onFiltersChange={handleFiltersChange} />
+                <ExpiryChart data={chartData} loading={loading} onFiltersChange={handleFiltersChange} session={session} />
             </div>
 
             <div className="flex justify-between items-center mb-4">

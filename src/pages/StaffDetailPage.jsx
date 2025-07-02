@@ -137,15 +137,22 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
     );
 }
 
-export default function StaffDetailPage({ staffMember, setPage, user }) {
+export default function StaffDetailPage({ staffMember, setPage, user, session }) {
     const [certs, setCerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
     const [selectedCertification, setSelectedCertification] = useState(null);
     const [showCertModal, setShowCertModal] = useState(false);
     const [auditTrail, setAuditTrail] = useState([]);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [certToDelete, setCertToDelete] = useState(null);
 
     const fetchStaffCertifications = useCallback(async () => {
+        if (!session || !staffMember) {
+            setLoading(false);
+            return;
+        }
+        
         setLoading(true);
         const { data, error } = await supabase.from('v_certifications_with_status').select('*').eq('staff_id', staffMember.id);
         if (error) {
@@ -154,37 +161,49 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
             setCerts(data);
         }
         setLoading(false);
-    }, [staffMember.id]);
+    }, [session, staffMember?.id]);
 
     useEffect(() => {
         fetchStaffCertifications();
     }, [fetchStaffCertifications]);
     
-    const handleDeleteCert = async (id) => {
-        if(confirm('Are you sure you want to delete this certification?')) {
-            // Get certification data before deletion for audit log
-            const { data: certToDelete } = await supabase
-                .from('v_certifications_with_status')
-                .select('*')
-                .eq('id', id)
-                .single();
+    const confirmDeleteCert = (cert) => {
+        setCertToDelete(cert);
+        setShowDeleteDialog(true);
+    };
 
-            const { error } = await supabase.from('staff_certifications').delete().eq('id', id);
-            if(error) {
-                showToast(error.message, 'error');
-            } else {
-                // Log audit trail for certification deletion
-                if (certToDelete) {
-                    await logCertificationDeleted(id, {
-                        template_name: certToDelete.template_name,
-                        expiry_date: certToDelete.expiry_date
-                    });
-                }
-                
-                showToast('Certification deleted.', 'success');
-                fetchStaffCertifications();
-            }
+    const handleDeleteCert = async () => {
+        if (!session || !certToDelete) {
+            showToast('No active session.', 'error');
+            return;
         }
+
+        // Get certification data before deletion for audit log
+        const { data: certData } = await supabase
+            .from('v_certifications_with_status')
+            .select('*')
+            .eq('id', certToDelete.id)
+            .single();
+
+        const { error } = await supabase.from('staff_certifications').delete().eq('id', certToDelete.id);
+        if(error) {
+            showToast(error.message, 'error');
+        } else {
+            // Log audit trail for certification deletion
+            if (certData) {
+                await logCertificationDeleted(certToDelete.id, {
+                    template_name: certData.template_name,
+                    expiry_date: certData.expiry_date
+                });
+            }
+            
+            showToast('Certification deleted.', 'success');
+            fetchStaffCertifications();
+        }
+        
+        // Close dialog and reset state
+        setShowDeleteDialog(false);
+        setCertToDelete(null);
     };
 
     const fetchAuditTrailData = async (certificationId) => {
@@ -251,7 +270,7 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
                                         <td className="p-4" onClick={() => handleCertificationClick(cert)}><StatusBadge status={cert.status} /></td>
                                         <td className="p-4" onClick={() => handleCertificationClick(cert)}>{cert.document_url ? <span className="text-sky-400">View Document</span> : '-'}</td>
                                         <td className="p-4 text-right">
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteCert(cert.id); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); confirmDeleteCert(cert); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -278,6 +297,33 @@ export default function StaffDetailPage({ staffMember, setPage, user }) {
                 certification={selectedCertification}
                 auditTrail={auditTrail}
             />
+            
+            {showDeleteDialog && certToDelete && (
+                <Dialog id="delete-cert-dialog" title="Confirm Deletion" onClose={() => setShowDeleteDialog(false)}>
+                    <div className="space-y-4">
+                        <p className="text-slate-300">
+                            Are you sure you want to delete the certification <span className="font-semibold text-white">"{certToDelete.template_name}"</span> for {staffMember.full_name}?
+                        </p>
+                        <p className="text-red-400 text-sm">
+                            This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button 
+                                onClick={() => setShowDeleteDialog(false)} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleDeleteCert} 
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Delete Certification
+                            </button>
+                        </div>
+                    </div>
+                </Dialog>
+            )}
         </>
     );
 }
