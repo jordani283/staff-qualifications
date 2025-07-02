@@ -5,8 +5,9 @@ import { Download } from 'lucide-react';
 import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
 import { fetchAuditTrail } from '../utils/auditLogger.js';
+import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
-export default function DashboardPage({ profile, session }) {
+export default function DashboardPage({ profile, session, onOpenExpiredModal }) {
     const [metrics, setMetrics] = useState({ green: 0, amber: 0, red: 0 });
     const [certs, setCerts] = useState([]);
     const [chartData, setChartData] = useState([]);
@@ -16,6 +17,9 @@ export default function DashboardPage({ profile, session }) {
     const [showCertModal, setShowCertModal] = useState(false);
     const [auditTrail, setAuditTrail] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(null);
+
+    // Get feature access permissions
+    const { canExport, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
 
     const fetchDashboardData = useCallback(async () => {
         if (!session) {
@@ -49,81 +53,93 @@ export default function DashboardPage({ profile, session }) {
         if (error) {
             console.error("Error fetching dashboard data:", error);
             showToast("Error loading data.", "error");
-        } else {
-            setAllCerts(data);
-            
-            const newMetrics = data.reduce((acc, cert) => {
-                if (cert.status === 'Up-to-Date') acc.green++;
-                if (cert.status === 'Expiring Soon') acc.amber++;
-                if (cert.status === 'Expired') acc.red++;
-                return acc;
-            }, { green: 0, amber: 0, red: 0 });
-            setMetrics(newMetrics);
-
-            const actionNeededCerts = data.filter(c => c.status !== 'Up-to-Date').sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
-            setCerts(actionNeededCerts);
-
-            // Initial chart data - next 30 days, all staff
-            updateChartData(data, {
-                startDate: new Date().toISOString().split('T')[0],
-                endDate: (() => {
-                    const thirtyDaysFromNow = new Date();
-                    thirtyDaysFromNow.setDate(new Date().getDate() + 30);
-                    return thirtyDaysFromNow.toISOString().split('T')[0];
-                })(),
-                staffId: ''
-            });
+            setLoading(false);
+            return;
         }
-        setLoading(false);
-    }, [session, currentUserId]);
 
-    const updateChartData = useCallback((data, filters) => {
-        const { startDate, endDate, staffId } = filters;
+        // Calculate metrics
+        const redCerts = [];
+        const amberCerts = [];
+        const allCertsData = data || [];
         
-        // Filter data based on date range and staff member
-        let filteredData = data.filter(cert => {
-            const expiryDate = new Date(cert.expiry_date);
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            
-            const withinDateRange = expiryDate >= start && expiryDate <= end;
-            const matchesStaff = !staffId || cert.staff_id === staffId;
-            
-            return withinDateRange && matchesStaff;
+        let greenCount = 0, amberCount = 0, redCount = 0;
+        
+        allCertsData.forEach(cert => {
+            if (cert.status === 'Up-to-Date') greenCount++;
+            else if (cert.status === 'Expiring Soon') {
+                amberCount++;
+                amberCerts.push(cert);
+            }
+            else if (cert.status === 'Expired') {
+                redCount++;
+                redCerts.push(cert);
+            }
+        });
+        
+        setMetrics({ green: greenCount, amber: amberCount, red: redCount });
+        setCerts([...redCerts, ...amberCerts]);
+        setAllCerts(allCertsData);
+        updateChartData(allCertsData);
+        setLoading(false);
+    }, [session]);
+
+    const updateChartData = useCallback((certsData, filters = {}) => {
+        if (!certsData || certsData.length === 0) {
+            setChartData([]);
+            return;
+        }
+
+        let filteredCerts = certsData;
+
+        // Apply filters
+        if (filters.staffFilter && filters.staffFilter !== 'all') {
+            filteredCerts = filteredCerts.filter(cert => cert.staff_id === filters.staffFilter);
+        }
+
+        if (filters.statusFilter && filters.statusFilter !== 'all') {
+            filteredCerts = filteredCerts.filter(cert => cert.status === filters.statusFilter);
+        }
+
+        // Group by expiry date for chart
+        const expiryGroups = {};
+        filteredCerts.forEach(cert => {
+            if (cert.expiry_date) {
+                const dateKey = cert.expiry_date;
+                if (!expiryGroups[dateKey]) {
+                    expiryGroups[dateKey] = {
+                        count: 0,
+                        certDetails: []
+                    };
+                }
+                expiryGroups[dateKey].count++;
+                expiryGroups[dateKey].certDetails.push({
+                    staffName: cert.staff_name,
+                    certName: cert.template_name,
+                    status: cert.status
+                });
+            }
         });
 
-        // Group by expiry date with detailed information
-        const expiryGroups = filteredData.reduce((acc, cert) => {
-            const dateKey = cert.expiry_date;
-            if (!acc[dateKey]) {
-                acc[dateKey] = {
-                    count: 0,
-                    certDetails: []
-                };
-            }
-            acc[dateKey].count += 1;
-            acc[dateKey].certDetails.push({
-                staff_name: cert.staff_name,
-                template_name: cert.template_name,
-                staff_id: cert.staff_id,
-                id: cert.id
-            });
-            return acc;
-        }, {});
-
-        // Calculate date range in days
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const daysDifference = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        const useWeeklyGrouping = daysDifference > 90; // More than 3 months
-        
+        // Create chart data array
         let chartDataArray = [];
         
-        if (useWeeklyGrouping) {
-            // Group by weeks
+        // Get date range (next 12 months)
+        const today = new Date();
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setFullYear(today.getFullYear() + 1);
+        
+        // Set start and end dates
+        const start = new Date(today);
+        const end = new Date(oneYearFromNow);
+        
+        // Determine if we should group by weeks (for longer ranges)
+        const daysDifference = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        const shouldGroupByWeeks = daysDifference > 90;
+        
+        if (shouldGroupByWeeks) {
+            // Weekly grouping for longer ranges
             const weekGroups = {};
             
-            // First, populate all certificates into week groups
             Object.keys(expiryGroups).forEach(dateString => {
                 const date = new Date(dateString);
                 const weekStart = new Date(date);
@@ -214,6 +230,15 @@ export default function DashboardPage({ profile, session }) {
         link.remove();
     };
 
+    const handleShowUpgradePrompt = () => {
+        if (onOpenExpiredModal) {
+            onOpenExpiredModal();
+        } else {
+            showToast('Upgrade your plan to export data', 'error');
+        }
+        console.log('Upgrade prompt triggered for CSV export');
+    };
+
     const fetchAuditTrailData = async (certificationId) => {
         const { data, error } = await fetchAuditTrail(certificationId);
         if (error) {
@@ -282,8 +307,14 @@ export default function DashboardPage({ profile, session }) {
 
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-white">Action Needed</h2>
-                <button onClick={handleExportCsv} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center text-sm">
-                    <Download className="mr-2 h-4 w-4" /> Export All to CSV
+                <button 
+                    onClick={() => handleRestrictedAction(handleExportCsv, handleShowUpgradePrompt)}
+                    disabled={!canExport}
+                    className={`${getButtonClass('bg-slate-700 hover:bg-slate-600', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center text-sm`}
+                    title={canExport ? 'Export all certifications to CSV' : 'Upgrade to export data'}
+                >
+                    <Download className="mr-2 h-4 w-4" /> 
+                    {getButtonText('Export All to CSV', 'Upgrade to Export')}
                 </button>
             </div>
             <div id="dashboard-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">

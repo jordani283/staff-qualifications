@@ -3,13 +3,15 @@ import { supabase } from '../supabase.js';
 import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import CertificationModal from '../components/CertificationModal';
-import { Plus, ArrowLeft, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, Trash2, FileText } from 'lucide-react';
 import { 
     logCertificationCreated, 
     logCertificationDeleted, 
     logDocumentUploaded,
     fetchAuditTrail 
 } from '../utils/auditLogger.js';
+import { updateCertificationWithAudit } from '../utils/certificationEditing.js';
+import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
 function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
     const [templates, setTemplates] = useState([]);
@@ -137,73 +139,139 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
     );
 }
 
-export default function StaffDetailPage({ staffMember, setPage, user, session }) {
-    const [certs, setCerts] = useState([]);
+export default function StaffDetailPage({ currentPageData, setPage, user, session, onOpenExpiredModal }) {
+    const { staffMember } = currentPageData;
+    const [certifications, setCertifications] = useState([]);
+    const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showDialog, setShowDialog] = useState(false);
-    const [selectedCertification, setSelectedCertification] = useState(null);
-    const [showCertModal, setShowCertModal] = useState(false);
-    const [auditTrail, setAuditTrail] = useState([]);
+    const [showAssignDialog, setShowAssignDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [certToDelete, setCertToDelete] = useState(null);
+    const [certificationToDelete, setCertificationToDelete] = useState(null);
+    const [showCertModal, setShowCertModal] = useState(false);
+    const [selectedCertification, setSelectedCertification] = useState(null);
+    const [auditTrail, setAuditTrail] = useState([]);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+    // Get feature access permissions
+    const { canCreate, canDelete, canAssign, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
 
     const fetchStaffCertifications = useCallback(async () => {
-        if (!session || !staffMember) {
+        if (!session) {
             setLoading(false);
             return;
         }
         
         setLoading(true);
-        const { data, error } = await supabase.from('v_certifications_with_status').select('*').eq('staff_id', staffMember.id);
-        if (error) {
+        
+        // Fetch staff certifications
+        const { data: certData, error: certError } = await supabase
+            .from('v_certifications_with_status')
+            .select('*')
+            .eq('staff_id', staffMember.id);
+        
+        if (certError) {
             showToast("Error fetching certifications.", "error");
         } else {
-            setCerts(data);
+            setCertifications(certData || []);
         }
+        
+        // Fetch available certificate templates
+        const { data: templateData, error: templateError } = await supabase
+            .from('certification_templates')
+            .select('*');
+        
+        if (templateError) {
+            showToast("Error fetching certificate templates.", "error");
+        } else {
+            setTemplates(templateData || []);
+        }
+        
         setLoading(false);
-    }, [session, staffMember?.id]);
+    }, [staffMember.id, session]);
 
     useEffect(() => {
         fetchStaffCertifications();
     }, [fetchStaffCertifications]);
-    
-    const confirmDeleteCert = (cert) => {
-        setCertToDelete(cert);
-        setShowDeleteDialog(true);
-    };
 
-    const handleDeleteCert = async () => {
-        if (!session || !certToDelete) {
+    const handleAssignCertification = async (e) => {
+        e.preventDefault();
+        if (!session) {
             showToast('No active session.', 'error');
             return;
         }
-
-        // Get certification data before deletion for audit log
-        const { data: certData } = await supabase
-            .from('v_certifications_with_status')
-            .select('*')
-            .eq('id', certToDelete.id)
-            .single();
-
-        const { error } = await supabase.from('staff_certifications').delete().eq('id', certToDelete.id);
+        
+        const formData = new FormData(e.target);
+        
+        // Process file upload if present
+        let documentUrl = null;
+        const fileInput = formData.get('document');
+        if (fileInput && fileInput.size > 0) {
+            const fileName = `${Date.now()}_${fileInput.name}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('certification-documents')
+                .upload(fileName, fileInput);
+            
+            if (uploadError) {
+                showToast("Error uploading document.", "error");
+                return;
+            }
+            
+            const { data: urlData } = supabase.storage
+                .from('certification-documents')
+                .getPublicUrl(uploadData.path);
+            documentUrl = urlData.publicUrl;
+        }
+        
+        const newCertification = {
+            user_id: user.id,
+            staff_id: staffMember.id,
+            template_id: formData.get('template_id'),
+            issue_date: formData.get('issue_date'),
+            expiry_date: formData.get('expiry_date'),
+            document_url: documentUrl,
+            notes: formData.get('notes') || null,
+        };
+        
+        const { error } = await supabase.from('staff_certifications').insert(newCertification);
         if(error) {
             showToast(error.message, 'error');
         } else {
-            // Log audit trail for certification deletion
-            if (certData) {
-                await logCertificationDeleted(certToDelete.id, {
-                    template_name: certData.template_name,
-                    expiry_date: certData.expiry_date
-                });
-            }
-            
-            showToast('Certification deleted.', 'success');
+            showToast('Certification assigned!', 'success');
+            setShowAssignDialog(false);
+            fetchStaffCertifications();
+        }
+    };
+
+    const confirmDeleteCertification = (certification) => {
+        if (!canDelete) {
+            handleShowUpgradePrompt();
+            return;
+        }
+        setCertificationToDelete(certification);
+        setShowDeleteDialog(true);
+    };
+
+    const handleDeleteCertification = async () => {
+        if (!session || !certificationToDelete) {
+            showToast('No active session.', 'error');
+            return;
+        }
+        
+        const { error } = await supabase
+            .from('staff_certifications')
+            .delete()
+            .eq('id', certificationToDelete.id);
+        
+        if(error) {
+            showToast(error.message, 'error');
+        } else {
+            showToast('Certification removed.', 'success');
             fetchStaffCertifications();
         }
         
         // Close dialog and reset state
         setShowDeleteDialog(false);
-        setCertToDelete(null);
+        setCertificationToDelete(null);
     };
 
     const fetchAuditTrailData = async (certificationId) => {
@@ -223,7 +291,8 @@ export default function StaffDetailPage({ staffMember, setPage, user, session })
             issue_date: cert.issue_date,
             expiry_date: cert.expiry_date,
             status: cert.status,
-            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
+            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null,
+            notes: cert.notes
         });
         await fetchAuditTrailData(cert.id);
         setShowCertModal(true);
@@ -234,43 +303,118 @@ export default function StaffDetailPage({ staffMember, setPage, user, session })
         setSelectedCertification(null);
         setAuditTrail([]);
     };
-    
+
+    const handleSaveCertification = async (updates) => {
+        try {
+            const result = await updateCertificationWithAudit(selectedCertification.id, updates);
+            
+            if (result.error) {
+                throw new Error(result.error.message || 'Failed to update certification');
+            }
+            
+            showToast(result.message || 'Certification updated successfully!', 'success');
+            fetchStaffCertifications(); // Refresh the data
+            handleCloseModal();
+        } catch (error) {
+            console.error('Failed to update certification:', error);
+            showToast(error.message || 'Failed to update certification', 'error');
+        }
+    };
+
+    const handleShowUpgradePrompt = () => {
+        if (onOpenExpiredModal) {
+            onOpenExpiredModal();
+        } else {
+            setShowUpgradeModal(true);
+            showToast('Upgrade your plan to manage certifications', 'error');
+        }
+        console.log('Upgrade prompt triggered for certification management');
+    };
+
     return (
         <>
-            <div className="mb-8">
-                <a href="#" className="flex items-center text-sky-400 hover:text-sky-300 mb-4" onClick={() => setPage('staff')}>
-                   <ArrowLeft className="mr-2 h-4 w-4" /> Back to Staff List
-                </a>
-                <h1 className="text-3xl font-bold text-white">{staffMember.full_name}</h1>
-                <p className="text-slate-400">{staffMember.job_title || 'No title'} - {staffMember.email || 'No email'}</p>
-            </div>
-            <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-2xl font-bold text-white">Certifications</h2>
-                 <button onClick={() => setShowDialog(true)} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center">
-                   <Plus className="mr-2 h-4 w-4" /> Assign Certification
+            <div className="flex items-center mb-8">
+                <button 
+                    onClick={() => setPage('staff')} 
+                    className="mr-4 p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+                    title="Back to Staff List"
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </button>
+                <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-white">{staffMember.full_name}</h1>
+                    <p className="text-slate-400">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
+                </div>
+                <button 
+                    onClick={() => handleRestrictedAction(
+                        () => setShowAssignDialog(true), 
+                        handleShowUpgradePrompt
+                    )}
+                    disabled={!canAssign}
+                    className={`${canAssign ? 'bg-sky-600 hover:bg-sky-700' : 'bg-gray-500 cursor-not-allowed'} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    title={canAssign ? 'Assign a new certification' : 'Upgrade to assign certifications'}
+                >
+                   <Plus className="mr-2 h-4 w-4" /> 
+                   {getButtonText('Assign Certification', 'Upgrade to Assign')}
                 </button>
             </div>
-            <div id="staff-certs-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
+            
+            <div id="staff-certifications-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
+                <div className="p-4 bg-slate-800 border-b border-slate-700">
+                    <h2 className="text-xl font-bold text-white">Certifications</h2>
+                </div>
                 {loading ? <Spinner /> : (
-                    certs.length === 0 ? (
-                        <p className="p-6 text-center text-slate-400">No certifications assigned yet.</p>
+                    certifications.length === 0 ? (
+                        <p className="p-6 text-center text-slate-400">
+                            {canAssign 
+                                ? "No certifications assigned yet. Click 'Assign Certification' to begin."
+                                : "No certifications found. Upgrade your plan to assign and manage certifications."
+                            }
+                        </p>
                     ) : (
                         <table className="w-full text-left">
-                             <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
+                            <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
                                 <tr>
-                                    <th className="p-4">Certification</th><th className="p-4">Issue Date</th><th className="p-4">Expiry Date</th><th className="p-4">Status</th><th className="p-4">Document</th><th></th>
+                                    <th className="p-4">Certification</th>
+                                    <th className="p-4">Issue Date</th>
+                                    <th className="p-4">Expiry Date</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4">Document</th>
+                                    <th className="p-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {certs.map(cert => (
-                                     <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors">
-                                        <td className="p-4 font-medium text-white" onClick={() => handleCertificationClick(cert)}>{cert.template_name}</td>
-                                        <td className="p-4 text-slate-300" onClick={() => handleCertificationClick(cert)}>{cert.issue_date}</td>
-                                        <td className="p-4 text-slate-300" onClick={() => handleCertificationClick(cert)}>{cert.expiry_date}</td>
-                                        <td className="p-4" onClick={() => handleCertificationClick(cert)}><StatusBadge status={cert.status} /></td>
-                                        <td className="p-4" onClick={() => handleCertificationClick(cert)}>{cert.document_url ? <span className="text-sky-400">View Document</span> : '-'}</td>
+                                {certifications.map(cert => (
+                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
+                                        <td 
+                                            className="p-4 font-medium text-white cursor-pointer hover:text-sky-400" 
+                                            onClick={() => handleCertificationClick(cert)}
+                                            title="Click to view/edit details"
+                                        >
+                                            {cert.template_name}
+                                        </td>
+                                        <td className="p-4 text-slate-300">{cert.issue_date}</td>
+                                        <td className="p-4 text-slate-300">{cert.expiry_date}</td>
+                                        <td className="p-4"><StatusBadge status={cert.status} /></td>
+                                        <td className="p-4">
+                                            {cert.document_url ? (
+                                                <a href={cert.document_url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 flex items-center">
+                                                    <FileText className="h-4 w-4 mr-1" />
+                                                    View
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-500">No document</span>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-right">
-                                            <button onClick={(e) => { e.stopPropagation(); confirmDeleteCert(cert); }} className="text-red-400 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>
+                                            <button 
+                                                onClick={() => confirmDeleteCertification(cert)} 
+                                                disabled={!canDelete}
+                                                className={`${canDelete ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                title={canDelete ? 'Remove certification' : 'Upgrade to remove certifications'}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -279,30 +423,48 @@ export default function StaffDetailPage({ staffMember, setPage, user, session })
                     )
                 )}
             </div>
-            {showDialog && (
-                <AssignCertDialog 
-                    staffId={staffMember.id}
-                    userId={user.id}
-                    onClose={() => setShowDialog(false)} 
-                    onSuccess={() => {
-                        setShowDialog(false);
-                        fetchStaffCertifications();
-                    }}
-                />
+            
+            {showAssignDialog && canAssign && (
+                <Dialog id="assign-certification-dialog" title="Assign Certification" onClose={() => setShowAssignDialog(false)}>
+                    <form id="assign-certification-form" onSubmit={handleAssignCertification} className="space-y-4">
+                        <div>
+                            <label htmlFor="template_id" className="block text-sm font-medium text-slate-300 mb-1">Certificate Type</label>
+                            <select id="template_id" name="template_id" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500">
+                                <option value="">Select a certificate type...</option>
+                                {templates.map(template => (
+                                    <option key={template.id} value={template.id}>{template.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="issue_date" className="block text-sm font-medium text-slate-300 mb-1">Issue Date</label>
+                            <input id="issue_date" name="issue_date" type="date" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-300 mb-1">Expiry Date</label>
+                            <input id="expiry_date" name="expiry_date" type="date" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="document" className="block text-sm font-medium text-slate-300 mb-1">Document (Optional)</label>
+                            <input id="document" name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="notes" className="block text-sm font-medium text-slate-300 mb-1">Notes (Optional)</label>
+                            <textarea id="notes" name="notes" rows="3" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                        </div>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button type="button" onClick={() => setShowAssignDialog(false)} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                            <button type="submit" form="assign-certification-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Assign Certification</button>
+                        </div>
+                    </form>
+                </Dialog>
             )}
             
-            <CertificationModal
-                isOpen={showCertModal}
-                onClose={handleCloseModal}
-                certification={selectedCertification}
-                auditTrail={auditTrail}
-            />
-            
-            {showDeleteDialog && certToDelete && (
-                <Dialog id="delete-cert-dialog" title="Confirm Deletion" onClose={() => setShowDeleteDialog(false)}>
+            {showDeleteDialog && certificationToDelete && canDelete && (
+                <Dialog id="delete-certification-dialog" title="Confirm Removal" onClose={() => setShowDeleteDialog(false)}>
                     <div className="space-y-4">
                         <p className="text-slate-300">
-                            Are you sure you want to delete the certification <span className="font-semibold text-white">"{certToDelete.template_name}"</span> for {staffMember.full_name}?
+                            Are you sure you want to remove the <span className="font-semibold text-white">"{certificationToDelete.template_name}"</span> certification from {staffMember.full_name}?
                         </p>
                         <p className="text-red-400 text-sm">
                             This action cannot be undone.
@@ -315,15 +477,51 @@ export default function StaffDetailPage({ staffMember, setPage, user, session })
                                 Cancel
                             </button>
                             <button 
-                                onClick={handleDeleteCert} 
+                                onClick={handleDeleteCertification} 
                                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
                             >
-                                Delete Certification
+                                Remove Certification
                             </button>
                         </div>
                     </div>
                 </Dialog>
             )}
+
+            {showUpgradeModal && (
+                <Dialog id="upgrade-prompt-dialog" title="Upgrade Required" onClose={() => setShowUpgradeModal(false)}>
+                    <div className="space-y-4">
+                        <p className="text-slate-300">
+                            Your trial has expired. Upgrade your plan to assign and manage certifications.
+                        </p>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button 
+                                onClick={() => setShowUpgradeModal(false)} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Close
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowUpgradeModal(false);
+                                    setPage('subscription');
+                                }} 
+                                className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Upgrade Now
+                            </button>
+                        </div>
+                    </div>
+                </Dialog>
+            )}
+            
+            <CertificationModal
+                isOpen={showCertModal}
+                onClose={handleCloseModal}
+                certification={selectedCertification}
+                auditTrail={auditTrail}
+                onSave={canDelete ? handleSaveCertification : undefined} // Only allow editing if user can delete
+                isReadOnly={!canDelete} // Make read-only for expired trials
+            />
         </>
     );
 }

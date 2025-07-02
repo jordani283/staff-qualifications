@@ -4,6 +4,9 @@ import {
     ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut
 } from 'lucide-react';
 import { Spinner } from './components/ui';
+import { useTrialStatus } from './hooks/useTrialStatus.js';
+import TrialExpiryBanner from './components/TrialExpiryBanner.jsx';
+import TrialExpiredModal from './components/TrialExpiredModal.jsx';
 
 // Page Components
 import LandingPage from './pages/LandingPage';
@@ -26,11 +29,32 @@ export default function App() {
     const [page, setPage] = useState('landing');
     const [currentPageData, setCurrentPageData] = useState({});
     const [stripeSessionId, setStripeSessionId] = useState(null);
+    const [showExpiredModal, setShowExpiredModal] = useState(false);
     
     // Use refs to track current user ID and profile across renders and auth events
     const currentUserIdRef = useRef(null);
     const currentProfileRef = useRef(null);
     const isInitializedRef = useRef(false);
+    const hasShownInitialModalRef = useRef(false);
+
+    // Create session object for trial status hook
+    const session = user ? { user, profile } : null;
+    
+    // Get trial status using the session
+    const trialStatus = useTrialStatus(session);
+
+    // Show modal automatically when trial expires and user is logged in
+    useEffect(() => {
+        if (trialStatus.isExpired && user && !trialStatus.loading && !hasShownInitialModalRef.current) {
+            setShowExpiredModal(true);
+            hasShownInitialModalRef.current = true;
+        }
+        
+        // Reset the flag if trial becomes active again
+        if (!trialStatus.isExpired) {
+            hasShownInitialModalRef.current = false;
+        }
+    }, [trialStatus.isExpired, user, trialStatus.loading]);
 
     useEffect(() => {
         const getInitialData = async () => {
@@ -99,6 +123,8 @@ export default function App() {
                 currentProfileRef.current = null;
                 setLoading(false);
                 setPage('landing');
+                setShowExpiredModal(false);
+                hasShownInitialModalRef.current = false;
                 return;
             }
 
@@ -167,6 +193,9 @@ export default function App() {
                             // Update user state and ref after successful profile fetch
                             setUser(session.user);
                             currentUserIdRef.current = session.user.id;
+                            
+                            // Reset modal flag for new user
+                            hasShownInitialModalRef.current = false;
                             
                         } catch (error) {
                             console.error('Profile fetch error:', error);
@@ -255,6 +284,20 @@ export default function App() {
         }
     };
 
+    // Trial expiry handlers
+    const handleUpgradeClick = () => {
+        setShowExpiredModal(false);
+        handleSetPage('subscription');
+    };
+
+    const handleViewOnlyClick = () => {
+        setShowExpiredModal(false);
+    };
+
+    const handleOpenExpiredModal = () => {
+        setShowExpiredModal(true);
+    };
+
     if (loading) {
         return <div id="app" className="flex h-screen w-screen overflow-hidden"><Spinner /></div>;
     }
@@ -281,17 +324,44 @@ export default function App() {
     } else if (user && (!profile || !profile.company_name)) {
         pageContent = <OnboardingPage user={user} onProfileUpdate={handleProfileUpdate} />;
     } else {
-        // Create session object at App level for consistent user tracking
-        const session = user ? { user } : null;
+        // Create enhanced session object with trial status
+        const enhancedSession = session ? { 
+            ...session, 
+            trialStatus 
+        } : null;
         
         pageContent = (
-            <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage}>
-                <PageContent page={page} currentPageData={currentPageData} setPage={handleSetPage} user={user} profile={profile} session={session} />
-            </MainLayout>
+            <>
+                {/* Trial Expiry Banner */}
+                <TrialExpiryBanner 
+                    trialStatus={trialStatus} 
+                    onUpgradeClick={handleUpgradeClick} 
+                />
+                
+                <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage}>
+                    <PageContent 
+                        page={page} 
+                        currentPageData={currentPageData} 
+                        setPage={handleSetPage} 
+                        user={user} 
+                        profile={profile} 
+                        session={enhancedSession}
+                        onOpenExpiredModal={handleOpenExpiredModal}
+                    />
+                </MainLayout>
+                
+                {/* Trial Expired Modal */}
+                <TrialExpiredModal
+                    isOpen={showExpiredModal}
+                    onUpgradeClick={handleUpgradeClick}
+                    onViewOnlyClick={handleViewOnlyClick}
+                    onClose={() => setShowExpiredModal(false)}
+                />
+            </>
         );
     }
     
-    return <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden'}>{pageContent}</div>;
+    return <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden flex-col'}>{pageContent}</div>;
 }
 
 // --- Layout Components ---
@@ -303,7 +373,7 @@ function MainLayout({ page, profile, user, setPage, children }) {
     };
 
     return (
-        <>
+        <div className="flex h-screen w-screen overflow-hidden">
             <nav className="bg-slate-950/70 border-r border-slate-800 w-64 p-4 flex-col flex-shrink-0 hidden md:flex">
                 <div className="flex items-center gap-3 px-2 mb-8">
                     <ShieldCheck className="text-sky-400 h-8 w-8" />
@@ -327,16 +397,16 @@ function MainLayout({ page, profile, user, setPage, children }) {
             <main id="main-content" className="flex-1 bg-slate-900 p-4 sm:p-6 md:p-8 overflow-y-auto">
                 <div className="page-enter">{children}</div>
             </main>
-        </>
+        </div>
     );
 }
 
-function PageContent({ page, currentPageData, setPage, user, profile, session }) {
+function PageContent({ page, currentPageData, setPage, user, profile, session, onOpenExpiredModal }) {
     switch (page) {
-        case 'dashboard': return <DashboardPage profile={profile} session={session} />;
-        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} />;
-        case 'staffDetail': return <StaffDetailPage staffMember={currentPageData.staffMember} setPage={setPage} user={user} session={session} />;
-        case 'certificates': return <CertificatesPage user={user} session={session} />;
+        case 'dashboard': return <DashboardPage profile={profile} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'staffDetail': return <StaffDetailPage currentPageData={currentPageData} setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'activities': return <ActivitiesPage user={user} session={session} />;
         case 'subscription': return <SubscriptionPage user={user} session={session} />;
         default: return <div>Page not found</div>;

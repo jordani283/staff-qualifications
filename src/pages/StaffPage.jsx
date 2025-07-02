@@ -3,11 +3,16 @@ import { supabase } from '../supabase.js';
 import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Plus } from 'lucide-react';
+import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
-export default function StaffPage({ setPage, user, session }) {
+export default function StaffPage({ setPage, user, session, onOpenExpiredModal }) {
     const [staffWithCerts, setStaffWithCerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+    // Get feature access permissions
+    const { canCreate, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
 
     const fetchStaffAndCerts = useCallback(async () => {
         if (!session) {
@@ -78,6 +83,16 @@ export default function StaffPage({ setPage, user, session }) {
         }
     };
 
+    const handleShowUpgradePrompt = () => {
+        if (onOpenExpiredModal) {
+            onOpenExpiredModal();
+        } else {
+            setShowUpgradeModal(true);
+            showToast('Upgrade your plan to add staff members', 'error');
+        }
+        console.log('Upgrade prompt triggered for Add Staff');
+    };
+
     return (
         <>
             <div className="flex justify-between items-center mb-8">
@@ -85,14 +100,28 @@ export default function StaffPage({ setPage, user, session }) {
                     <h1 className="text-3xl font-bold text-white">Staff Management</h1>
                     <p className="text-slate-400">View, add, and manage your team members.</p>
                 </div>
-                <button onClick={() => setShowDialog(true)} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center">
-                   <Plus className="mr-2 h-4 w-4" /> Add Staff
+                <button 
+                    onClick={() => handleRestrictedAction(
+                        () => setShowDialog(true), 
+                        handleShowUpgradePrompt
+                    )}
+                    disabled={!canCreate}
+                    className={`${getButtonClass('bg-sky-600 hover:bg-sky-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    title={canCreate ? 'Add a new staff member' : 'Upgrade to add staff members'}
+                >
+                   <Plus className="mr-2 h-4 w-4" /> 
+                   {getButtonText('Add Staff', 'Upgrade to Add Staff')}
                 </button>
             </div>
             <div id="staff-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
                 {loading ? <Spinner /> : (
                     staffWithCerts.length === 0 ? (
-                        <p className="p-6 text-center text-slate-400">No staff members added yet. Click 'Add Staff' to begin.</p>
+                        <p className="p-6 text-center text-slate-400">
+                            {canCreate 
+                                ? "No staff members added yet. Click 'Add Staff' to begin."
+                                : "No staff members found. Upgrade your plan to add and manage staff members."
+                            }
+                        </p>
                     ) : (
                         <table className="w-full text-left">
                             <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
@@ -121,7 +150,7 @@ export default function StaffPage({ setPage, user, session }) {
                     )
                 )}
             </div>
-            {showDialog && (
+            {showDialog && canCreate && (
                  <Dialog id="add-staff-dialog" title="Add New Staff Member" onClose={() => setShowDialog(false)}>
                     <form id="add-staff-form" onSubmit={handleAddStaff} className="space-y-4">
                         <div>
@@ -142,6 +171,32 @@ export default function StaffPage({ setPage, user, session }) {
                         </div>
                     </form>
                  </Dialog>
+            )}
+            {showUpgradeModal && (
+                <Dialog id="upgrade-prompt-dialog" title="Upgrade Required" onClose={() => setShowUpgradeModal(false)}>
+                    <div className="space-y-4">
+                        <p className="text-slate-300">
+                            Your trial has expired. Upgrade your plan to add and manage staff members.
+                        </p>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button 
+                                onClick={() => setShowUpgradeModal(false)} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Close
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowUpgradeModal(false);
+                                    setPage('subscription');
+                                }} 
+                                className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Upgrade Now
+                            </button>
+                        </div>
+                    </div>
+                </Dialog>
             )}
         </>
     );
