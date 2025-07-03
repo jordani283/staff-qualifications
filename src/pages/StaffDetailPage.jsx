@@ -261,10 +261,10 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         let documentUrl = null;
         const fileInput = formData.get('document');
         if (fileInput && fileInput.size > 0) {
-            const fileName = `${Date.now()}_${fileInput.name}`;
+            const filePath = `${user.id}/${staffMember.id}/${Date.now()}-${fileInput.name}`;
             const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('certification-documents')
-                .upload(fileName, fileInput);
+                .from('certificates')
+                .upload(filePath, fileInput);
             
             if (uploadError) {
                 showToast("Error uploading document.", "error");
@@ -272,8 +272,8 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             }
             
             const { data: urlData } = supabase.storage
-                .from('certification-documents')
-                .getPublicUrl(uploadData.path);
+                .from('certificates')
+                .getPublicUrl(filePath);
             documentUrl = urlData.publicUrl;
         }
         
@@ -287,10 +287,25 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             notes: formData.get('notes') || null,
         };
         
-        const { error } = await supabase.from('staff_certifications').insert(newCertification);
+        const { data: insertedCert, error } = await supabase
+            .from('staff_certifications')
+            .insert(newCertification)
+            .select()
+            .single();
+            
         if(error) {
             showToast(error.message, 'error');
         } else {
+            // Log audit trail for certification creation
+            await logCertificationCreated(insertedCert.id, {
+                template_name: templates.find(t => t.id === newCertification.template_id)?.name
+            });
+
+            // Log document upload if a document was uploaded
+            if (documentUrl && fileInput) {
+                await logDocumentUploaded(insertedCert.id, fileInput.name);
+            }
+            
             showToast('Certification assigned!', 'success');
             setShowAssignDialog(false);
             setIssueDate('');
@@ -314,6 +329,12 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             showToast('No active session.', 'error');
             return;
         }
+        
+        // Log deletion before actually deleting
+        await logCertificationDeleted(certificationToDelete.id, {
+            template_name: certificationToDelete.template_name,
+            expiry_date: certificationToDelete.expiry_date
+        });
         
         const { error } = await supabase
             .from('staff_certifications')
@@ -483,12 +504,16 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             </div>
             
             {showAssignDialog && canAssign && (
-                <Dialog id="assign-certification-dialog" title="Assign Certification" onClose={() => {
-                    setShowAssignDialog(false);
-                    setIssueDate('');
-                    setExpiryDate('');
-                    setSelectedTemplateId('');
-                }}>
+                <Dialog 
+                    id="assign-certification-dialog" 
+                    title="Assign Certification" 
+                    onClose={() => {
+                        setShowAssignDialog(false);
+                        setIssueDate('');
+                        setExpiryDate('');
+                        setSelectedTemplateId('');
+                    }}
+                >
                     <form id="assign-certification-form" onSubmit={handleAssignCertification} className="space-y-4">
                         <div>
                             <label htmlFor="template_id" className="block text-sm font-medium text-slate-300 mb-1">Certificate Type</label>
