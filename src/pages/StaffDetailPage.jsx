@@ -464,12 +464,12 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             </thead>
                             <tbody>
                                 {certifications.map(cert => (
-                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
-                                        <td 
-                                            className="p-4 font-medium text-white cursor-pointer hover:text-sky-400" 
-                                            onClick={() => handleCertificationClick(cert)}
-                                            title="Click to view/edit details"
-                                        >
+                                    <tr key={cert.id} 
+                                        className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                                        onClick={() => handleCertificationClick(cert)}
+                                        title="Click to view/edit details"
+                                    >
+                                        <td className="p-4 font-medium text-white hover:text-sky-400">
                                             {cert.template_name}
                                         </td>
                                         <td className="p-4 text-slate-300">{cert.issue_date}</td>
@@ -477,7 +477,10 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                         <td className="p-4"><StatusBadge status={cert.status} /></td>
                                         <td className="p-4">
                                             {cert.document_url ? (
-                                                <a href={cert.document_url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 flex items-center">
+                                                <a href={cert.document_url} target="_blank" rel="noopener noreferrer" 
+                                                   className="text-sky-400 hover:text-sky-300 flex items-center"
+                                                   onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <FileText className="h-4 w-4 mr-1" />
                                                     View
                                                 </a>
@@ -485,7 +488,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                                 <span className="text-slate-500">No document</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-right">
+                                        <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                                             <button 
                                                 onClick={() => confirmDeleteCertification(cert)} 
                                                 disabled={!canDelete}

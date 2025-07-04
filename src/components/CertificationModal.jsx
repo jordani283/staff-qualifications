@@ -70,15 +70,15 @@ const CertificationModal = ({
   };
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'valid':
-        return 'text-green-400 bg-green-400/10';
-      case 'expiring soon':
-        return 'text-amber-400 bg-amber-400/10';
-      case 'expired':
-        return 'text-red-400 bg-red-400/10';
+    switch (status) {
+      case 'Up-to-Date':
+        return 'text-green-400 bg-green-400/10 border-green-400/30';
+      case 'Expiring Soon':
+        return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
+      case 'Expired':
+        return 'text-red-400 bg-red-400/10 border-red-400/30';
       default:
-        return 'text-slate-400 bg-slate-400/10';
+        return 'text-slate-400 bg-slate-400/10 border-slate-400/30';
     }
   };
 
@@ -108,9 +108,10 @@ const CertificationModal = ({
         right: 0,
         bottom: 0,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'start',
         justifyContent: 'center',
-        padding: '1rem'
+        padding: '1rem',
+        paddingTop: '80px'
       }}
     >
       <div 
@@ -161,7 +162,7 @@ const CertificationModal = ({
                   {formatDate(certification.expiry_date)}
                 </div>
                 <div className="h-6 flex items-center">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(certification.status)}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(certification.status)}`}>
                     {certification.status || 'Unknown'}
                   </span>
                 </div>
