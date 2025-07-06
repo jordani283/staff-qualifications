@@ -5,7 +5,7 @@ import Dialog from '../components/Dialog';
 import { Plus } from 'lucide-react';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
-export default function StaffPage({ setPage, user, session, onOpenExpiredModal }) {
+export default function StaffPage({ setPage, user, session, onOpenExpiredModal, currentPageData }) {
     const [staffWithCerts, setStaffWithCerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
@@ -22,14 +22,14 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal }
         
         setLoading(true);
 
-        const { data: staff, error: staffError } = await supabase.from('staff').select('*').order('created_at');
+        const { data: staff, error: staffError } = await supabase.from('staff').select('*').eq('user_id', session.user.id).order('created_at');
         if (staffError) {
             showToast("Error fetching staff.", "error");
             setLoading(false);
             return;
         }
 
-        const { data: certs, error: certsError } = await supabase.from('v_certifications_with_status').select('staff_id, status');
+        const { data: certs, error: certsError } = await supabase.from('v_certifications_with_status').select('staff_id, status').eq('user_id', session.user.id);
         if (certsError) {
             showToast("Error fetching certifications.", "error");
             setLoading(false);
@@ -58,6 +58,13 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal }
     useEffect(() => {
         fetchStaffAndCerts();
     }, [fetchStaffAndCerts]);
+
+    // Auto-open dialog if navigated from dashboard
+    useEffect(() => {
+        if (currentPageData?.autoOpenDialog && canCreate) {
+            setShowDialog(true);
+        }
+    }, [currentPageData?.autoOpenDialog, canCreate]);
     
     const handleAddStaff = async (e) => {
         e.preventDefault();

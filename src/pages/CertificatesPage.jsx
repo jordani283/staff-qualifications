@@ -5,7 +5,7 @@ import Dialog from '../components/Dialog';
 import { Plus, Trash2 } from 'lucide-react';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
-export default function CertificatesPage({ user, session, onOpenExpiredModal }) {
+export default function CertificatesPage({ user, session, onOpenExpiredModal, currentPageData }) {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
@@ -35,6 +35,13 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal }) 
     useEffect(() => {
         fetchTemplates();
     }, [fetchTemplates]);
+
+    // Auto-open dialog if navigated from dashboard
+    useEffect(() => {
+        if (currentPageData?.autoOpenDialog && canCreate) {
+            setShowDialog(true);
+        }
+    }, [currentPageData?.autoOpenDialog, canCreate]);
 
     const handleAddTemplate = async (e) => {
         e.preventDefault();
@@ -110,7 +117,7 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal }) 
                         handleShowUpgradePrompt
                     )}
                     disabled={!canCreate}
-                    className={`${getButtonClass('bg-sky-600 hover:bg-sky-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
                     title={canCreate ? 'Create a new certificate template' : 'Upgrade to create certificates'}
                 >
                    <Plus className="mr-2 h-4 w-4" /> 

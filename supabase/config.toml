@@ -1,0 +1,3 @@
+[functions.stripe-webhook]
+# Allow unauthenticated access for Stripe webhooks
+verify_jwt = false 

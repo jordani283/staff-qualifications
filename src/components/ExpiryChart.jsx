@@ -75,7 +75,7 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                 return;
             }
             
-            const { data: staff } = await supabase.from('staff').select('id, full_name').order('full_name');
+            const { data: staff } = await supabase.from('staff').select('id, full_name').eq('user_id', session.user.id).order('full_name');
             setStaffMembers(staff || []);
         };
         fetchStaffMembers();
@@ -216,6 +216,8 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                         <YAxis 
                             stroke="#9CA3AF"
                             fontSize={12}
+                            allowDecimals={false}
+                            domain={[0, 'dataMax']}
                             label={{ 
                                 value: 'Certificates Expiring', 
                                 angle: -90, 

@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
-import { Download } from 'lucide-react';
+import { Download, Plus, Users, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
+import RenewCertificationModal from '../components/RenewCertificationModal';
 import { fetchAuditTrail } from '../utils/auditLogger.js';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
-export default function DashboardPage({ profile, session, onOpenExpiredModal }) {
+export default function DashboardPage({ profile, session, onOpenExpiredModal, setPage }) {
     const [metrics, setMetrics] = useState({ green: 0, amber: 0, red: 0 });
     const [certs, setCerts] = useState([]);
     const [chartData, setChartData] = useState([]);
@@ -17,9 +18,20 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
     const [showCertModal, setShowCertModal] = useState(false);
     const [auditTrail, setAuditTrail] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(null);
+    const [certificationToRenew, setCertificationToRenew] = useState(null);
+    const [showRenewModal, setShowRenewModal] = useState(false);
 
     // Get feature access permissions
-    const { canExport, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
+    const { canCreate, canExport, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
+
+    // Navigation functions for quick actions
+    const handleAddStaff = () => {
+        setPage('staff', { autoOpenDialog: true });
+    };
+
+    const handleAddCertificate = () => {
+        setPage('certificates', { autoOpenDialog: true });
+    };
 
     const fetchDashboardData = useCallback(async () => {
         if (!session) {
@@ -45,7 +57,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
         setCurrentUserId(newUserId);
         
         setLoading(true);
-        const { data, error } = await supabase.from('v_certifications_with_status').select('*');
+        const { data, error } = await supabase.from('v_certifications_with_status').select('*').eq('user_id', session.user.id);
         
         // DEBUGGING: Log what the database returns for this user
         console.log('RAW DATA FROM VIEW for user ' + session.user.id, data);
@@ -208,7 +220,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
             return;
         }
         
-        const { data, error } = await supabase.from('v_certifications_with_status').select('*');
+        const { data, error } = await supabase.from('v_certifications_with_status').select('*').eq('user_id', session.user.id);
         
         // DEBUGGING: Log what the database returns for export
         console.log('EXPORT DATA FROM VIEW for user ' + session.user.id, data);
@@ -261,7 +273,8 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
             issue_date: cert.issue_date,
             expiry_date: cert.expiry_date,
             status: cert.status,
-            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null
+            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null,
+            document_url: cert.document_url
         });
         await fetchAuditTrailData(cert.id);
         setShowCertModal(true);
@@ -273,12 +286,56 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
         setAuditTrail([]);
     };
 
+    // Handle opening the renewal modal
+    const handleRenewCertification = (cert) => {
+        setCertificationToRenew(cert);
+        setShowRenewModal(true);
+    };
+
+    // Handle successful renewal
+    const handleRenewalSuccess = () => {
+        // Refresh dashboard data
+        fetchDashboardData();
+        setCertificationToRenew(null);
+        setShowRenewModal(false);
+    };
+
+    // Handle closing the renewal modal
+    const handleCloseRenewalModal = () => {
+        setCertificationToRenew(null);
+        setShowRenewModal(false);
+    };
+
     return (
         <>
-            <h1 className="text-3xl font-bold text-white mb-2">
-                {profile?.company_name ? `${profile.company_name}'s Dashboard` : 'Dashboard'}
-            </h1>
-            <p className="text-slate-400 mb-8">Here's your team's compliance overview.</p>
+            <div className="flex justify-between items-start mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        {profile?.company_name ? `${profile.company_name}'s Dashboard` : 'Dashboard'}
+                    </h1>
+                    <p className="text-slate-400">Here's your team's compliance overview.</p>
+                </div>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleRestrictedAction(handleAddStaff, handleShowUpgradePrompt)}
+                        disabled={!canCreate}
+                        className={`${getButtonClass('bg-sky-600 hover:bg-sky-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                        title={canCreate ? 'Add a new staff member' : 'Upgrade to add staff members'}
+                    >
+                        <Users className="mr-2 h-4 w-4" /> 
+                        {getButtonText('Add Staff', 'Upgrade to Add')}
+                    </button>
+                    <button 
+                        onClick={() => handleRestrictedAction(handleAddCertificate, handleShowUpgradePrompt)}
+                        disabled={!canCreate}
+                        className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                        title={canCreate ? 'Create a new certificate template' : 'Upgrade to create certificates'}
+                    >
+                        <FileSpreadsheet className="mr-2 h-4 w-4" /> 
+                        {getButtonText('Add Certificate', 'Upgrade to Add')}
+                    </button>
+                </div>
+            </div>
             
             <div id="dashboard-metrics" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {loading ? (
@@ -334,15 +391,30 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
                                     <th className="p-4">Certification</th>
                                     <th className="p-4">Expires On</th>
                                     <th className="p-4">Status</th>
+                                    <th className="p-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {certs.map(cert => (
-                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors" onClick={() => handleCertificationClick(cert)}>
-                                        <td className="p-4 font-medium text-white">{cert.staff_name}</td>
-                                        <td className="p-4 text-slate-300">{cert.template_name}</td>
-                                        <td className="p-4 text-slate-300">{cert.expiry_date}</td>
-                                        <td className="p-4"><StatusBadge status={cert.status} /></td>
+                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
+                                        <td className="p-4 font-medium text-white cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.staff_name}</td>
+                                        <td className="p-4 text-slate-300 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.template_name}</td>
+                                        <td className="p-4 text-slate-300 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.expiry_date}</td>
+                                        <td className="p-4 cursor-pointer" onClick={() => handleCertificationClick(cert)}><StatusBadge status={cert.status} /></td>
+                                        <td className="p-4">
+                                            {(cert.status === 'Expiring Soon' || cert.status === 'Expired') && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRenewCertification(cert);
+                                                    }}
+                                                    className="p-1 text-green-400 hover:text-green-300 hover:bg-slate-700 rounded transition-colors"
+                                                    title="Renew certification"
+                                                >
+                                                    <RefreshCw className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -356,6 +428,16 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal }) 
                 onClose={handleCloseModal}
                 certification={selectedCertification}
                 auditTrail={auditTrail}
+                canRenew={true}
+                onRenew={handleRenewCertification}
+            />
+            
+            {/* Renewal Modal */}
+            <RenewCertificationModal
+                isOpen={showRenewModal}
+                onClose={handleCloseRenewalModal}
+                certification={certificationToRenew}
+                onSuccess={handleRenewalSuccess}
             />
         </>
     );

@@ -5,7 +5,7 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 import GapAnalysisTable from '../components/GapAnalysisTable.jsx';
 import { ChevronDown, Users, FileSpreadsheet, Check } from 'lucide-react';
 
-export default function GapAnalysisPage({ user, session, onOpenExpiredModal }) {
+export default function GapAnalysisPage({ user, session, onOpenExpiredModal, setPage }) {
     const [rawData, setRawData] = useState([]);
     const [staffData, setStaffData] = useState([]);
     const [templateData, setTemplateData] = useState([]);
@@ -236,14 +236,14 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal }) {
                         </div>
                         <div className="flex justify-center space-x-4 pt-4">
                             <button
-                                onClick={() => window.location.hash = '#staff'}
+                                onClick={() => setPage('staff')}
                                 className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                             >
                                 Manage Staff
                             </button>
                             <button
-                                onClick={() => window.location.hash = '#certificates'}
-                                className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                onClick={() => setPage('certificates')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                             >
                                 Manage Certificates
                             </button>
@@ -274,7 +274,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal }) {
                             </p>
                         </div>
                         <button
-                            onClick={() => window.location.hash = '#staff'}
+                            onClick={() => setPage('staff')}
                             className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                         >
                             Add Staff Members
@@ -305,8 +305,8 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal }) {
                             </p>
                         </div>
                         <button
-                            onClick={() => window.location.hash = '#certificates'}
-                            className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                            onClick={() => setPage('certificates')}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                         >
                             Create Certificate Templates
                         </button>

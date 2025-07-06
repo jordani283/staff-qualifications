@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import {
-    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3
+    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3, MessageSquare
 } from 'lucide-react';
 import { Spinner } from './components/ui';
 import { useTrialStatus } from './hooks/useTrialStatus.js';
+import { useSupportUnread } from './hooks/useSupportUnread.js';
 import TrialExpiryBanner from './components/TrialExpiryBanner.jsx';
 import TrialExpiredModal from './components/TrialExpiredModal.jsx';
 
@@ -20,6 +21,8 @@ import StaffDetailPage from './pages/StaffDetailPage';
 import CertificatesPage from './pages/CertificatesPage';
 import ActivitiesPage from './pages/ActivitiesPage';
 import GapAnalysisPage from './pages/GapAnalysisPage';
+import SupportPage from './pages/SupportPage';
+import AdminSupportPage from './pages/AdminSupportPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 
 // --- Main App Component ---
@@ -43,6 +46,9 @@ export default function App() {
     
     // Get trial status using the session
     const trialStatus = useTrialStatus(session);
+    
+    // Get unread support messages count
+    const supportUnread = useSupportUnread(session);
 
     // Show modal automatically when trial expires and user is logged in
     useEffect(() => {
@@ -339,7 +345,7 @@ export default function App() {
                     onUpgradeClick={handleUpgradeClick} 
                 />
                 
-                <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage}>
+                <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage} supportUnread={supportUnread}>
                     <PageContent 
                         page={page} 
                         currentPageData={currentPageData} 
@@ -348,6 +354,7 @@ export default function App() {
                         profile={profile} 
                         session={enhancedSession}
                         onOpenExpiredModal={handleOpenExpiredModal}
+                        supportUnread={supportUnread}
                     />
                 </MainLayout>
                 
@@ -366,11 +373,23 @@ export default function App() {
 }
 
 // --- Layout Components ---
-function MainLayout({ page, profile, user, setPage, children }) {
+function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
     const navItemClass = (pageName) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${page === pageName ? 'bg-sky-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`;
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    // Check if user is admin (database flag only)
+    const isAdmin = profile?.is_admin === true;
+
+    // Handle support page navigation - admin goes to admin-support, regular users go to support
+    const handleSupportClick = () => {
+        if (isAdmin) {
+            setPage('admin-support');
+        } else {
+            setPage('support');
+        }
     };
 
     return (
@@ -386,6 +405,15 @@ function MainLayout({ page, profile, user, setPage, children }) {
                     <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
                     <a href="#" className={navItemClass('activities')} onClick={() => setPage('activities')}><Clock className="mr-3 h-5 w-5" />Activities</a>
                     <a href="#" className={navItemClass('gapanalysis')} onClick={() => setPage('gapanalysis')}><BarChart3 className="mr-3 h-5 w-5" />Gap Analysis</a>
+                    <a href="#" className={`${navItemClass(isAdmin ? 'admin-support' : 'support')} relative`} onClick={handleSupportClick}>
+                        <MessageSquare className="mr-3 h-5 w-5" />
+                        {isAdmin ? 'Admin Support' : 'Support'}
+                        {supportUnread?.unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                                {supportUnread.unreadCount > 9 ? '9+' : supportUnread.unreadCount}
+                            </span>
+                        )}
+                    </a>
                     <a href="#" className={navItemClass('subscription')} onClick={() => setPage('subscription')}><CreditCard className="mr-3 h-5 w-5" />Subscription</a>
                 </div>
                 <div className="text-sm">
@@ -403,14 +431,16 @@ function MainLayout({ page, profile, user, setPage, children }) {
     );
 }
 
-function PageContent({ page, currentPageData, setPage, user, profile, session, onOpenExpiredModal }) {
+function PageContent({ page, currentPageData, setPage, user, profile, session, onOpenExpiredModal, supportUnread }) {
     switch (page) {
-        case 'dashboard': return <DashboardPage profile={profile} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
-        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'dashboard': return <DashboardPage profile={profile} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
+        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
         case 'staffDetail': return <StaffDetailPage currentPageData={currentPageData} setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
-        case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
         case 'activities': return <ActivitiesPage user={user} session={session} />;
-        case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
+        case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
+        case 'support': return <SupportPage session={session} supportUnread={supportUnread} />;
+        case 'admin-support': return <AdminSupportPage session={session} />;
         case 'subscription': return <SubscriptionPage user={user} session={session} />;
         default: return <div>Page not found</div>;
     }

@@ -8,7 +8,8 @@ export const AUDIT_ACTIONS = {
   EDIT: 'EDIT', 
   UPLOAD: 'UPLOAD',
   DELETE: 'DELETE',
-  COMMENT: 'COMMENT'
+  COMMENT: 'COMMENT',
+  RENEW: 'RENEW'
 };
 
 /**
@@ -142,6 +143,27 @@ export async function logCertificationComment(certificationId, comment) {
     certificationId,
     actionType: AUDIT_ACTIONS.COMMENT,
     note: comment
+  });
+}
+
+/**
+ * Log certification renewal
+ * @param {string} certificationId - UUID of the certification
+ * @param {Object} renewalData - The renewal data
+ * @param {string} renewalData.oldIssueDate - Previous issue date
+ * @param {string} renewalData.oldExpiryDate - Previous expiry date
+ * @param {string} renewalData.newIssueDate - New issue date
+ * @param {string} renewalData.newExpiryDate - New expiry date
+ * @param {string} renewalData.reason - Renewal reason
+ * @returns {Promise<Object>} Result of the audit log
+ */
+export async function logCertificationRenewed(certificationId, renewalData) {
+  return logAuditEntry({
+    certificationId,
+    actionType: AUDIT_ACTIONS.RENEW,
+    oldValue: renewalData.oldExpiryDate,
+    newValue: renewalData.newExpiryDate,
+    note: renewalData.reason || 'Certification renewed'
   });
 }
 

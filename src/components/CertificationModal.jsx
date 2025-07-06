@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { X, Download, Eye, Calendar, FileText, User, Clock } from 'lucide-react';
+import { X, Download, Eye, Calendar, FileText, User, Clock, RefreshCw } from 'lucide-react';
 
 const CertificationModal = ({ 
   isOpen, 
   onClose, 
   certification, 
-  auditTrail = [] 
+  auditTrail = [],
+  canRenew = false,
+  onRenew = null
 }) => {
   const modalRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -83,9 +85,22 @@ const CertificationModal = ({
   };
 
   const handleDocumentAction = (action, filename) => {
-    // This would typically handle document download/view
-    console.log(`${action} document:`, filename);
-    // TODO: Implement actual document handling
+    if (action === 'view' && certification.document_url) {
+      // Open document in new tab
+      window.open(certification.document_url, '_blank', 'noopener,noreferrer');
+    } else if (action === 'download' && certification.document_url) {
+      // For download, we can either open in new tab or trigger download
+      const link = document.createElement('a');
+      link.href = certification.document_url;
+      link.download = filename || 'document';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      console.log(`${action} document:`, filename, 'URL not available');
+    }
   };
 
   const handleBackdropClick = (e) => {
@@ -161,10 +176,21 @@ const CertificationModal = ({
                 <div className="h-6 flex items-center text-slate-200">
                   {formatDate(certification.expiry_date)}
                 </div>
-                <div className="h-6 flex items-center">
+                <div className="h-6 flex items-center gap-3">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(certification.status)}`}>
                     {certification.status || 'Unknown'}
                   </span>
+                  {/* Renewal button - only show for Expiring Soon or Expired certifications */}
+                  {canRenew && onRenew && (certification.status === 'Expiring Soon' || certification.status === 'Expired') && (
+                    <button
+                      onClick={() => onRenew(certification)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-full transition-colors"
+                      title="Renew certification"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Renew
+                    </button>
+                  )}
                 </div>
                 {certification.document_filename && (
                   <div className="flex items-center gap-2">
@@ -276,6 +302,7 @@ CertificationModal.propTypes = {
     expiry_date: PropTypes.string,
     status: PropTypes.string,
     document_filename: PropTypes.string,
+    document_url: PropTypes.string,
   }),
   auditTrail: PropTypes.arrayOf(
     PropTypes.shape({
@@ -291,6 +318,8 @@ CertificationModal.propTypes = {
       performed_by: PropTypes.string,
     })
   ),
+  canRenew: PropTypes.bool,
+  onRenew: PropTypes.func,
 };
 
 export default CertificationModal; 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { Spinner, showToast } from '../components/ui';
-import { Clock, Filter, Search, Calendar, User, FileText, Upload, Trash2, Edit, MessageCircle } from 'lucide-react';
+import { Clock, Filter, Search, Calendar, User, FileText, Upload, Trash2, Edit, MessageCircle, RefreshCw } from 'lucide-react';
 
 export default function ActivitiesPage({ user }) {
     const [activities, setActivities] = useState([]);
@@ -142,6 +142,7 @@ export default function ActivitiesPage({ user }) {
             case 'EDIT': return <Edit className="w-4 h-4 text-amber-400" />;
             case 'DELETE': return <Trash2 className="w-4 h-4 text-red-400" />;
             case 'COMMENT': return <MessageCircle className="w-4 h-4 text-purple-400" />;
+            case 'RENEW': return <RefreshCw className="w-4 h-4 text-sky-400" />;
             default: return <Clock className="w-4 h-4 text-slate-400" />;
         }
     };
@@ -154,6 +155,7 @@ export default function ActivitiesPage({ user }) {
             case 'EDIT': return 'text-amber-400 bg-amber-400/10';
             case 'DELETE': return 'text-red-400 bg-red-400/10';
             case 'COMMENT': return 'text-purple-400 bg-purple-400/10';
+            case 'RENEW': return 'text-sky-400 bg-sky-400/10';
             default: return 'text-slate-400 bg-slate-400/10';
         }
     };

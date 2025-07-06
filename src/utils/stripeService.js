@@ -128,29 +128,46 @@ export async function createCheckoutSession(planId, billingCycle = 'monthly') {
 
 /**
  * Create Stripe portal session for managing subscription/billing
- * This will need a backend API endpoint
  */
 export async function createPortalSession() {
+    console.log('Creating Stripe portal session...');
     try {
-        // Using your actual Supabase project reference
+        // Use direct fetch to avoid x-client-info header causing CORS issues
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token;
+
+        if (!accessToken) {
+            throw new Error('No access token found. User might not be authenticated.');
+        }
+
         const response = await fetch('https://uydysrzsvnclyxaqdsag.supabase.co/functions/v1/stripe-portal', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-            }
+                'Authorization': `Bearer ${accessToken}`, // Ensure authorization is sent
+            },
+            body: JSON.stringify({
+                return_url: window.location.href, // Send the current URL as return_url
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`);
         }
 
         const data = await response.json();
-        return { data };
-    } catch (error) {
-        console.error('Error creating portal session:', error);
-        showToast('Failed to open billing portal', 'error');
-        return { error };
+        console.log('Frontend received data from Edge Function:', data);
+
+        if (!data || !data.portal_url) {
+            throw new Error('Portal URL not received from server.');
+        }
+
+        console.log('Portal session created:', data);
+        return data; // Return the data object directly, which should contain portal_url
+    } catch (err) {
+        console.error('Error creating portal session:', err);
+        throw err; // Re-throw the error to be handled by the calling component
     }
 }
 
@@ -159,7 +176,8 @@ export async function createPortalSession() {
  * Uses Stripe Customer Portal for secure cancellation
  */
 export async function cancelSubscription() {
-    showToast('Redirecting to billing portal to cancel subscription...', 'success');
+    // This function simply calls createPortalSession, as the portal handles both
+    // managing and cancelling subscriptions.
     return await createPortalSession();
 }
 

@@ -44,7 +44,7 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                     <thead className="bg-slate-800">
                         <tr>
                             {/* Top-left corner cell */}
-                            <th className="p-2 pb-4 text-xs text-slate-400 uppercase font-medium border-r border-slate-700 sticky left-0 bg-slate-800 z-10 min-w-[200px] h-24 align-bottom">
+                            <th className="p-2 pb-4 text-xs text-slate-400 uppercase font-medium border-r border-slate-700 sticky left-0 bg-slate-800 z-10 min-w-[200px] h-40 align-bottom">
                                 <div className="flex items-end h-full">
                                     Staff / Certificates
                                 </div>
@@ -54,10 +54,10 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                             {templateData.map(template => (
                                 <th 
                                     key={template.id} 
-                                    className="p-2 text-xs text-slate-400 uppercase font-medium text-center border-l border-slate-700 min-w-[120px] relative"
+                                    className="p-2 text-sm text-slate-400 uppercase font-medium text-center border-l border-slate-700 min-w-[120px] relative"
                                     title={template.name}
                                 >
-                                    <div className="h-20 flex items-end justify-center">
+                                    <div className="h-36 flex items-center justify-center pb-4">
                                         <div 
                                             className="transform -rotate-45 origin-bottom-left whitespace-nowrap text-center max-w-none"
                                             style={{ transformOrigin: 'bottom center' }}

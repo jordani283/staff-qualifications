@@ -35,10 +35,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 Webhook request received - method:', req.method)
+    console.log('🔍 Request headers:', Object.fromEntries(req.headers.entries()))
+    
     const signature = req.headers.get('Stripe-Signature')
     
     if (!signature) {
-      console.error('Missing Stripe signature')
+      console.error('❌ Missing Stripe signature')
       return new Response(JSON.stringify({ error: 'Missing Stripe signature' }), { 
         status: 400,
         headers: {
@@ -48,11 +51,16 @@ serve(async (req) => {
       })
     }
     
+    console.log('✅ Stripe signature present:', signature.substring(0, 50) + '...')
+    
     const body = await req.text()
+    console.log('✅ Request body length:', body.length)
+    console.log('✅ Body preview:', body.substring(0, 200) + '...')
+    
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
     
     if (!webhookSecret) {
-      console.error('Missing webhook secret')
+      console.error('❌ Missing webhook secret')
       return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), { 
         status: 500,
         headers: {
@@ -62,7 +70,11 @@ serve(async (req) => {
       })
     }
 
+    console.log('✅ Webhook secret present:', webhookSecret.substring(0, 10) + '...')
+    console.log('🔐 Attempting signature verification...')
+
     const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
+    console.log('✅ Signature verification successful!')
 
     console.log(`Processing webhook event: ${event.type}`)
 
@@ -94,7 +106,22 @@ serve(async (req) => {
       },
     })
   } catch (err) {
-    console.error('Webhook error:', err)
+    console.error('❌ Webhook error:', err)
+    console.error('❌ Error message:', err.message)
+    console.error('❌ Error stack:', err.stack)
+    
+    // Check if this is a signature verification error
+    if (err.message.includes('signature') || err.message.includes('timestamp')) {
+      console.error('🔐 Signature verification failed!')
+      return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
+        status: 401,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+      })
+    }
+    
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
       headers: { 

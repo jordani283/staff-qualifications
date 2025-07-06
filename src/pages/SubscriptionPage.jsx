@@ -40,6 +40,7 @@ export default function SubscriptionPage({ user }) {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState('');
+    const [error, setError] = useState(null);
 
     // Fetch all subscription data
     const fetchSubscriptionData = useCallback(async () => {
@@ -100,19 +101,39 @@ export default function SubscriptionPage({ user }) {
 
     const handleManageBilling = async () => {
         setActionLoading('portal');
-        const result = await createPortalSession();
-        if (result.data?.url) {
-            window.open(result.data.url, '_blank');
+        try {
+            const result = await createPortalSession();
+            if (result.portal_url) {
+                window.location.href = result.portal_url;
+            } else {
+                throw new Error('Failed to retrieve billing portal URL.');
+            }
+        } catch (err) {
+            console.error('Failed to open billing portal:', err);
+            setError(err.message);
+        } finally {
+            setActionLoading('');
         }
-        setActionLoading('');
     };
 
     const handleCancelSubscription = async () => {
         if (window.confirm('Are you sure you want to cancel your subscription? It will remain active until the end of your current billing period.')) {
             setActionLoading('cancel');
-            await cancelSubscription();
-            await fetchSubscriptionData(); // Refresh data
-            setActionLoading('');
+            setError(null);
+            try {
+                const { portal_url } = await cancelSubscription();
+
+                if (portal_url) {
+                    window.location.href = portal_url;
+                } else {
+                    throw new Error('Failed to retrieve Stripe Portal URL.');
+                }
+            } catch (err) {
+                console.error('Failed to handle cancellation:', err);
+                setError(err.message);
+            } finally {
+                setActionLoading('');
+            }
         }
     };
 
@@ -351,6 +372,12 @@ export default function SubscriptionPage({ user }) {
                                 )}
                                 Cancel Subscription
                             </button>
+                        )}
+                        
+                        {error && (
+                            <div className="mt-2 p-2 bg-red-900/20 border border-red-800 rounded-md">
+                                <p className="text-red-400 text-sm">Error: {error}</p>
+                            </div>
                         )}
 
                         {/* Billing Cycle Toggle */}

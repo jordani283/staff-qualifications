@@ -3,7 +3,8 @@ import { supabase } from '../supabase.js';
 import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import CertificationModal from '../components/CertificationModal';
-import { Plus, ArrowLeft, Trash2, FileText } from 'lucide-react';
+import RenewCertificationModal from '../components/RenewCertificationModal';
+import { Plus, ArrowLeft, Trash2, FileText, RefreshCw } from 'lucide-react';
 import { 
     logCertificationCreated, 
     logCertificationDeleted, 
@@ -151,6 +152,8 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const [selectedCertification, setSelectedCertification] = useState(null);
     const [auditTrail, setAuditTrail] = useState([]);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showRenewModal, setShowRenewModal] = useState(false);
+    const [certificationToRenew, setCertificationToRenew] = useState(null);
     const [issueDate, setIssueDate] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -371,6 +374,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             expiry_date: cert.expiry_date,
             status: cert.status,
             document_filename: cert.document_url ? cert.document_url.split('/').pop() : null,
+            document_url: cert.document_url,
             notes: cert.notes
         });
         await fetchAuditTrailData(cert.id);
@@ -410,6 +414,26 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         console.log('Upgrade prompt triggered for certification management');
     };
 
+    // Handle opening the renewal modal
+    const handleRenewCertification = (cert) => {
+        setCertificationToRenew(cert);
+        setShowRenewModal(true);
+    };
+
+    // Handle successful renewal
+    const handleRenewalSuccess = () => {
+        // Refresh certifications list
+        fetchStaffCertifications();
+        setCertificationToRenew(null);
+        setShowRenewModal(false);
+    };
+
+    // Handle closing the renewal modal
+    const handleCloseRenewalModal = () => {
+        setCertificationToRenew(null);
+        setShowRenewModal(false);
+    };
+
     return (
         <>
             <div className="flex items-center mb-8">
@@ -430,7 +454,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                         handleShowUpgradePrompt
                     )}
                     disabled={!canAssign}
-                    className={`${canAssign ? 'bg-sky-600 hover:bg-sky-700' : 'bg-gray-500 cursor-not-allowed'} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    className={`${canAssign ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-500 cursor-not-allowed'} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
                     title={canAssign ? 'Assign a new certification' : 'Upgrade to assign certifications'}
                 >
                    <Plus className="mr-2 h-4 w-4" /> 
@@ -489,14 +513,31 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                             )}
                                         </td>
                                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                            <button 
-                                                onClick={() => confirmDeleteCertification(cert)} 
-                                                disabled={!canDelete}
-                                                className={`${canDelete ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}`}
-                                                title={canDelete ? 'Remove certification' : 'Upgrade to remove certifications'}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* Renew button - only show for Expiring Soon or Expired certifications */}
+                                                {(cert.status === 'Expiring Soon' || cert.status === 'Expired') && (
+                                                    <button 
+                                                        onClick={() => handleRestrictedAction(
+                                                            () => handleRenewCertification(cert),
+                                                            handleShowUpgradePrompt
+                                                        )}
+                                                        disabled={!canDelete}
+                                                        className={`${canDelete ? 'text-green-400 hover:text-green-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                        title={canDelete ? 'Renew certification' : 'Upgrade to renew certifications'}
+                                                    >
+                                                        <RefreshCw className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {/* Delete button */}
+                                                <button 
+                                                    onClick={() => confirmDeleteCertification(cert)} 
+                                                    disabled={!canDelete}
+                                                    className={`${canDelete ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                    title={canDelete ? 'Remove certification' : 'Upgrade to remove certifications'}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -579,7 +620,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             >
                                 Cancel
                             </button>
-                            <button type="submit" form="assign-certification-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Assign Certification</button>
+                            <button type="submit" form="assign-certification-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-md">Assign Certification</button>
                         </div>
                     </form>
                 </Dialog>
@@ -646,7 +687,28 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                 auditTrail={auditTrail}
                 onSave={canDelete ? handleSaveCertification : undefined} // Only allow editing if user can delete
                 isReadOnly={!canDelete} // Make read-only for expired trials
+                canRenew={canDelete} // Use same permission as delete for renewal
+                onRenew={handleRenewCertification}
             />
+
+            {/* Renewal Modal */}
+            {showRenewModal && certificationToRenew && (
+                <RenewCertificationModal
+                    isOpen={showRenewModal}
+                    onClose={handleCloseRenewalModal}
+                    certificationId={certificationToRenew.id}
+                    currentIssueDate={certificationToRenew.issue_date}
+                    currentExpiryDate={certificationToRenew.expiry_date}
+                    templateName={certificationToRenew.template_name}
+                    staffName={staffMember.full_name}
+                    templateValidityPeriodMonths={
+                        certificationToRenew.validity_period_months || 
+                        templates.find(t => t.id === certificationToRenew.template_id)?.validity_period_months || 
+                        12
+                    }
+                    onRenewalSuccess={handleRenewalSuccess}
+                />
+            )}
         </>
     );
 }
