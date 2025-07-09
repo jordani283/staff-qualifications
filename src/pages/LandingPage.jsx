@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, 
   Users, 
@@ -24,8 +25,9 @@ import {
   X
 } from 'lucide-react';
 
-export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
+export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const navigate = useNavigate();
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -86,19 +88,19 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => onNavigateToPricing()}
+                onClick={() => navigate('/pricing')}
                 className="text-slate-700 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Pricing
               </button>
               <button
-                onClick={() => onNavigateToAuth('login')}
+                onClick={() => navigate('/login')}
                 className="text-slate-700 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Sign In
               </button>
               <button
-                onClick={() => onNavigateToAuth('signup')}
+                onClick={() => navigate('/signup')}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Start Free Trial
@@ -124,7 +126,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </p>
               <div className="flex flex-col gap-4 mb-8">
                 <button
-                  onClick={() => onNavigateToAuth('signup')}
+                  onClick={() => navigate('/signup')}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-5 rounded-lg text-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center shadow-xl border-2 border-emerald-500"
                 >
                   Start Your Free 30-Day Trial
@@ -222,54 +224,8 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-800 mb-4">Sarah's Story</h3>
               <blockquote className="text-slate-700 italic">
-                "I'm terrified a certificate has expired and I've missed it. What if there's an incident and we're not covered? What will the CQC inspector find? I waste hours every month chasing staff for their documents and updating this spreadsheet. There has to be a better way."
+                "I was spending 2-3 hours every week updating spreadsheets and chasing staff for their certificates. I lived in constant fear that something would slip through the cracks during our CQC inspection."
               </blockquote>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solution/Benefit Section */}
-      <section className="py-20 bg-emerald-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6">
-              Your Always-On, Always-Compliant Certification System
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Transform your certification management from a source of stress into a system that gives you confidence and peace of mind.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ShieldCheck className="w-8 h-8 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Achieve Peace of Mind</h3>
-              <p className="text-slate-600">
-                Know you're audit-ready 24/7 with a real-time, color-coded dashboard that shows exactly what needs attention.
-              </p>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Save Dozens of Hours</h3>
-              <p className="text-slate-600">
-                Automated email reminders mean no more manual chasing. Let TeamCertify do the work for you.
-              </p>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Eliminate Human Error</h3>
-              <p className="text-slate-600">
-                Centralise all certificates, documents, and expiry dates in one secure, reliable place.
-              </p>
             </div>
           </div>
         </div>
@@ -381,23 +337,23 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <div className="lg:order-2">
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">
                   <Bell className="w-8 h-8 inline-block mr-3 text-blue-600" />
-                  Automated Expiry Reminders
+                  Automated Reminders
                 </h3>
                 <p className="text-lg text-slate-600 mb-6">
-                  Stop chasing people. Our system automatically notifies staff 30 days before a certificate expires.
+                  Never miss a renewal again. Automated email alerts keep you and your team on track.
                 </p>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-blue-600 mr-3" />
-                    Automatic email reminders to staff and managers
+                    Customizable reminder schedules (30, 14, 7 days)
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-blue-600 mr-3" />
-                    Customizable reminder schedules
+                    Automatic follow-ups until renewal is complete
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-blue-600 mr-3" />
-                    Escalation to managers for overdue renewals
+                    Manager notifications for team oversight
                   </li>
                 </ul>
               </div>
@@ -481,43 +437,59 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="lg:order-2">
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                  <Eye className="w-8 h-8 inline-block mr-3 text-cyan-600" />
+                  <BarChart3 className="w-8 h-8 inline-block mr-3 text-emerald-600" />
                   Gap Analysis & Reporting
                 </h3>
                 <p className="text-lg text-slate-600 mb-6">
-                  Instantly see which staff are missing required certifications and export compliance reports for your CQC evidence binder.
+                  Instantly see which staff need which certifications. Perfect for CQC inspections and compliance audits.
                 </p>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-cyan-600 mr-3" />
-                    Visual matrix showing all certification gaps
+                    <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
+                    Identify missing certifications across your team
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-cyan-600 mr-3" />
-                    One-click compliance reports for inspections
+                    <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
+                    Export compliance reports for inspections
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-cyan-600 mr-3" />
-                    Training needs analysis and planning
+                    <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
+                    Track training completion rates
                   </li>
                 </ul>
               </div>
               <div className="lg:order-1 bg-white rounded-xl shadow-lg p-6">
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {Array.from({ length: 25 }, (_, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      i === 2 || i === 7 || i === 15 ? 'bg-red-100 border-2 border-red-300' : 'bg-emerald-100 border-2 border-emerald-300'
-                    }`}>
-                      {i === 2 || i === 7 || i === 15 ? (
-                        <X className="w-4 h-4 text-red-600" />
-                      ) : (
-                        <Check className="w-4 h-4 text-emerald-600" />
-                      )}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-slate-600 pb-2 border-b">
+                    <div>Staff Member</div>
+                    <div>First Aid</div>
+                    <div>DBS Check</div>
+                    <div>Manual Handling</div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-sm items-center">
+                    <div className="font-medium">Alice Johnson</div>
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
                     </div>
-                  ))}
-                </div>
-                <div className="text-sm text-slate-600 text-center">
-                  5 staff × 5 required certifications = 25 total requirements
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-sm items-center">
+                    <div className="font-medium">Sarah Williams</div>
+                    <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -525,7 +497,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
         </div>
       </section>
 
-      {/* Trust & Reassurance Section */}
+      {/* Trust Signals */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6">
@@ -561,17 +533,16 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
           {/* Testimonials */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-slate-50 rounded-xl p-6 shadow-lg">
+              <div key={index} className="bg-slate-50 rounded-xl p-6">
                 <div className="flex items-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                   ))}
                 </div>
                 <p className="text-slate-700 mb-4 italic">"{testimonial.content}"</p>
-                <div>
+                <div className="text-sm">
                   <div className="font-semibold text-slate-900">{testimonial.name}</div>
-                  <div className="text-slate-600 text-sm">{testimonial.role}</div>
-                  <div className="text-slate-500 text-sm">{testimonial.company}</div>
+                  <div className="text-slate-600">{testimonial.role}, {testimonial.company}</div>
                 </div>
               </div>
             ))}
@@ -579,7 +550,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Preview */}
       <section className="py-20 bg-slate-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6">
@@ -603,7 +574,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                 <span className="text-slate-600">/month</span>
               </div>
               <button
-                onClick={() => onNavigateToAuth('signup')}
+                onClick={() => navigate('/signup')}
                 className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-lg font-semibold transition-colors"
               >
                 Start Free Trial
@@ -629,7 +600,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                 <span className="text-slate-600">/month</span>
               </div>
               <button
-                onClick={() => onNavigateToAuth('signup')}
+                onClick={() => navigate('/signup')}
                 className="w-full bg-emerald-600 text-white hover:bg-emerald-700 px-6 py-3 rounded-lg font-semibold transition-colors"
               >
                 Start Free Trial
@@ -649,7 +620,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                 <span className="text-slate-600">/month</span>
               </div>
               <button
-                onClick={() => onNavigateToAuth('signup')}
+                onClick={() => navigate('/signup')}
                 className="w-full border-2 border-slate-600 text-slate-600 hover:bg-slate-600 hover:text-white px-6 py-3 rounded-lg font-semibold transition-colors"
               >
                 Start Free Trial
@@ -667,7 +638,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               Ready to Swap Spreadsheet Stress for Compliance Confidence?
             </h2>
             <button
-              onClick={() => onNavigateToAuth('signup')}
+              onClick={() => navigate('/signup')}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-4 rounded-lg text-xl font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
               Start My Free 30-Day Trial - No Card Required
@@ -678,48 +649,31 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
           </div>
 
           {/* FAQ */}
-          <div className="max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-slate-900 mb-8 text-center">Frequently Asked Questions</h3>
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div key={index} className="border border-slate-200 rounded-lg">
-                  <button
-                    onClick={() => toggleFaq(index)}
-                    className="w-full text-left p-6 flex justify-between items-center hover:bg-slate-50 transition-colors"
-                  >
-                    <span className="font-semibold text-slate-900">{faq.question}</span>
-                    {openFaq === index ? (
-                      <ChevronUp className="w-5 h-5 text-slate-500" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-slate-500" />
-                    )}
-                  </button>
-                  {openFaq === index && (
-                    <div className="px-6 pb-6">
-                      <p className="text-slate-600">{faq.answer}</p>
-                    </div>
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold text-slate-900 text-center mb-8">Frequently Asked Questions</h3>
+            {faqs.map((faq, index) => (
+              <div key={index} className="border border-slate-200 rounded-lg">
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <span className="font-semibold text-slate-900">{faq.question}</span>
+                  {openFaq === index ? (
+                    <ChevronUp className="w-5 h-5 text-slate-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-500" />
                   )}
-                </div>
-              ))}
-            </div>
+                </button>
+                {openFaq === index && (
+                  <div className="px-6 pb-4">
+                    <p className="text-slate-600">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <ShieldCheck className="w-8 h-8 text-emerald-400 mr-2" />
-              <span className="text-xl font-bold">TeamCertify</span>
-            </div>
-            <p className="text-slate-400">
-              Giving care providers peace of mind through effortless compliance
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 } 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Routes, Route, useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { supabase } from './supabase';
 import {
     ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3, MessageSquare
@@ -31,10 +32,10 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState('landing');
-    const [currentPageData, setCurrentPageData] = useState({});
     const [stripeSessionId, setStripeSessionId] = useState(null);
     const [showExpiredModal, setShowExpiredModal] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
     
     // Use refs to track current user ID and profile across renders and auth events
     const currentUserIdRef = useRef(null);
@@ -99,9 +100,9 @@ export default function App() {
                     currentUserIdRef.current = session.user.id;
                     currentProfileRef.current = profile;
                     
-                    // Set default page for authenticated users with complete profiles
-                    if (profile && profile.company_name) {
-                        setPage('dashboard');
+                    // Redirect to dashboard if user has complete profile and is on landing page
+                    if (profile && profile.company_name && location.pathname === '/') {
+                        navigate('/dashboard');
                     }
                 } else {
                     console.log('ℹ️ No existing session found');
@@ -130,7 +131,7 @@ export default function App() {
                 currentUserIdRef.current = null;
                 currentProfileRef.current = null;
                 setLoading(false);
-                setPage('landing');
+                navigate('/');
                 setShowExpiredModal(false);
                 hasShownInitialModalRef.current = false;
                 return;
@@ -192,9 +193,9 @@ export default function App() {
                                 setProfile(profileData);
                                 currentProfileRef.current = profileData;
                                 
-                                // Set default page for authenticated users with complete profiles
+                                // Redirect to dashboard if user has complete profile
                                 if (profileData && profileData.company_name) {
-                                    setPage('dashboard');
+                                    navigate('/dashboard');
                                 }
                             }
 
@@ -230,7 +231,7 @@ export default function App() {
         return () => {
             authListener.subscription.unsubscribe();
         };
-    }, []); // Empty dependency array - refs ensure we have current values
+    }, [navigate, location.pathname]); // Added navigate and location.pathname to deps
 
     // HOOK 1: Captures the Stripe session ID from the URL on initial load
     useEffect(() => {
@@ -264,18 +265,13 @@ export default function App() {
         // The condition to finally redirect
         if (isDataReady && isRedirectPending) {
             console.log('🚀 All conditions met. REDIRECTING to subscription!');
-            setPage('subscription');
+            navigate('/subscription');
             
             // Clear the session ID from state to prevent loops
             setStripeSessionId(null);
         }
         
-    }, [user, profile, loading, stripeSessionId]); // Dependencies remain the same
-
-    const handleSetPage = (newPage, data = {}) => {
-        setPage(newPage);
-        setCurrentPageData(data);
-    };
+    }, [user, profile, loading, stripeSessionId, navigate]); // Added navigate to deps
 
     const handleProfileUpdate = async () => {
         if (user) {
@@ -288,14 +284,14 @@ export default function App() {
             setProfile(profile);
             currentProfileRef.current = profile; // Keep ref in sync
             setLoading(false);
-            setPage('dashboard');
+            navigate('/dashboard');
         }
     };
 
     // Trial expiry handlers
     const handleUpgradeClick = () => {
         setShowExpiredModal(false);
-        handleSetPage('subscription');
+        navigate('/subscription');
     };
 
     const handleViewOnlyClick = () => {
@@ -310,78 +306,189 @@ export default function App() {
         return <div id="app" className="flex h-screen w-screen overflow-hidden"><Spinner /></div>;
     }
 
-    const handleNavigateToAuth = (authType) => {
-        setPage(authType);
-    };
-
-    const handleNavigateBack = () => {
-        setPage('landing');
-    };
-
-    let pageContent;
-    if (!user) {
-        if (page === 'landing') {
-            pageContent = <LandingPage onNavigateToAuth={handleNavigateToAuth} onNavigateToPricing={() => setPage('pricing')} />;
-        } else if (page === 'pricing') {
-            pageContent = <PricingPage onNavigateToAuth={handleNavigateToAuth} onNavigateBack={handleNavigateBack} />;
-        } else if (page === 'signup') {
-            pageContent = <SignupPage setPage={handleSetPage} />;
-        } else {
-            pageContent = <LoginPage setPage={handleSetPage} />;
-        }
-    } else if (user && (!profile || !profile.company_name)) {
-        pageContent = <OnboardingPage user={user} onProfileUpdate={handleProfileUpdate} />;
-    } else {
-        // Create enhanced session object with trial status
-        const enhancedSession = session ? { 
-            ...session, 
-            trialStatus 
-        } : null;
-        
-        pageContent = (
-            <>
-                {/* Trial Expiry Banner */}
-                <TrialExpiryBanner 
-                    trialStatus={trialStatus} 
-                    onUpgradeClick={handleUpgradeClick} 
-                />
-                
-                <MainLayout page={page} profile={profile} user={user} setPage={handleSetPage} supportUnread={supportUnread}>
-                    <PageContent 
-                        page={page} 
-                        currentPageData={currentPageData} 
-                        setPage={handleSetPage} 
-                        user={user} 
-                        profile={profile} 
-                        session={enhancedSession}
-                        onOpenExpiredModal={handleOpenExpiredModal}
-                        supportUnread={supportUnread}
-                    />
-                </MainLayout>
-                
-                {/* Trial Expired Modal */}
-                <TrialExpiredModal
-                    isOpen={showExpiredModal}
-                    onUpgradeClick={handleUpgradeClick}
-                    onViewOnlyClick={handleViewOnlyClick}
-                    onClose={() => setShowExpiredModal(false)}
-                />
-            </>
-        );
-    }
-    
     return (
-        <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden flex-col'}>
+        <div id="app" className={location.pathname === '/' || location.pathname === '/pricing' ? '' : 'flex h-screen w-screen overflow-hidden flex-col'}>
             {/* Google Analytics 4 Page View Tracker */}
-            <GAPageViewTracker currentPage={page} user={user} />
-            {pageContent}
+            <GAPageViewTracker user={user} />
+            
+            <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                
+                {/* Protected routes */}
+                <Route path="/dashboard" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <DashboardPage 
+                            profile={profile} 
+                            session={session} 
+                            onOpenExpiredModal={handleOpenExpiredModal} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/staff" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <StaffPage 
+                            user={user} 
+                            session={session} 
+                            onOpenExpiredModal={handleOpenExpiredModal} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/staff/:id" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <StaffDetailPage 
+                            user={user} 
+                            session={session} 
+                            onOpenExpiredModal={handleOpenExpiredModal} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/certificates" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <CertificatesPage 
+                            user={user} 
+                            session={session} 
+                            onOpenExpiredModal={handleOpenExpiredModal} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/activities" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <ActivitiesPage 
+                            user={user} 
+                            session={session} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/gap-analysis" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <GapAnalysisPage 
+                            user={user} 
+                            session={session} 
+                            onOpenExpiredModal={handleOpenExpiredModal} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/support" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <SupportPage 
+                            session={session} 
+                            supportUnread={supportUnread} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/admin/support" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <AdminSupportPage 
+                            session={session} 
+                        />
+                    </ProtectedRoute>
+                } />
+                <Route path="/subscription" element={
+                    <ProtectedRoute user={user} profile={profile} handleProfileUpdate={handleProfileUpdate}>
+                        <SubscriptionPage 
+                            user={user} 
+                            session={session} 
+                        />
+                    </ProtectedRoute>
+                } />
+            </Routes>
+            
+            {/* Trial Expired Modal */}
+            <TrialExpiredModal
+                isOpen={showExpiredModal}
+                onUpgradeClick={handleUpgradeClick}
+                onViewOnlyClick={handleViewOnlyClick}
+                onClose={() => setShowExpiredModal(false)}
+            />
         </div>
     );
 }
 
+// --- Protected Route Component ---
+function ProtectedRoute({ user, profile, handleProfileUpdate, children }) {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // If not authenticated, redirect to login
+    if (!user) {
+        navigate('/login', { state: { from: location } });
+        return null;
+    }
+
+    // If user exists but profile is incomplete, show onboarding
+    if (user && (!profile || !profile.company_name)) {
+        return <OnboardingPage user={user} onProfileUpdate={handleProfileUpdate} />;
+    }
+
+    // If authenticated and profile complete, render with layout
+    return (
+        <MainLayoutWithTrialBanner profile={profile} user={user}>
+            {children}
+        </MainLayoutWithTrialBanner>
+    );
+}
+
+// --- Layout Component with Trial Banner ---
+function MainLayoutWithTrialBanner({ profile, user, children }) {
+    const session = user ? { user, profile } : null;
+    const trialStatus = useTrialStatus(session);
+    const supportUnread = useSupportUnread(session);
+    const [showExpiredModal, setShowExpiredModal] = useState(false);
+    const navigate = useNavigate();
+
+    const handleUpgradeClick = () => {
+        setShowExpiredModal(false);
+        navigate('/subscription');
+    };
+
+    const handleViewOnlyClick = () => {
+        setShowExpiredModal(false);
+    };
+
+    const handleOpenExpiredModal = () => {
+        setShowExpiredModal(true);
+    };
+
+    return (
+        <>
+            {/* Trial Expiry Banner */}
+            <TrialExpiryBanner 
+                trialStatus={trialStatus} 
+                onUpgradeClick={handleUpgradeClick} 
+            />
+            
+            <MainLayout profile={profile} user={user} supportUnread={supportUnread}>
+                {children}
+            </MainLayout>
+            
+            {/* Trial Expired Modal */}
+            <TrialExpiredModal
+                isOpen={showExpiredModal}
+                onUpgradeClick={handleUpgradeClick}
+                onViewOnlyClick={handleViewOnlyClick}
+                onClose={() => setShowExpiredModal(false)}
+            />
+        </>
+    );
+}
+
 // --- Layout Components ---
-function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
-    const navItemClass = (pageName) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${page === pageName ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`;
+function MainLayout({ profile, user, supportUnread, children }) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    const navItemClass = (path) => {
+        const isActive = location.pathname === path || 
+                        (path === '/gap-analysis' && location.pathname === '/gapanalysis') ||
+                        (path === '/admin/support' && location.pathname === '/admin-support');
+        return `flex items-center px-4 py-2.5 rounded-lg transition-colors ${
+            isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+        }`;
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -393,9 +500,9 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
     // Handle support page navigation - admin goes to admin-support, regular users go to support
     const handleSupportClick = () => {
         if (isAdmin) {
-            setPage('admin-support');
+            navigate('/admin/support');
         } else {
-            setPage('support');
+            navigate('/support');
         }
     };
 
@@ -407,12 +514,25 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
                     <span className="font-bold text-lg text-slate-900">TeamCertify</span>
                 </div>
                 <div className="flex-grow space-y-2">
-                    <a href="#" className={navItemClass('dashboard')} onClick={() => setPage('dashboard')}><LayoutDashboard className="mr-3 h-5 w-5" />Dashboard</a>
-                    <a href="#" className={navItemClass('staff')} onClick={() => setPage('staff')}><Users className="mr-3 h-5 w-5" />Staff</a>
-                    <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
-                    <a href="#" className={navItemClass('activities')} onClick={() => setPage('activities')}><Clock className="mr-3 h-5 w-5" />Activities</a>
-                    <a href="#" className={navItemClass('gapanalysis')} onClick={() => setPage('gapanalysis')}><BarChart3 className="mr-3 h-5 w-5" />Gap Analysis</a>
-                    <a href="#" className={`${navItemClass(isAdmin ? 'admin-support' : 'support')} relative`} onClick={handleSupportClick}>
+                    <Link to="/dashboard" className={navItemClass('/dashboard')}>
+                        <LayoutDashboard className="mr-3 h-5 w-5" />Dashboard
+                    </Link>
+                    <Link to="/staff" className={navItemClass('/staff')}>
+                        <Users className="mr-3 h-5 w-5" />Staff
+                    </Link>
+                    <Link to="/certificates" className={navItemClass('/certificates')}>
+                        <FileSpreadsheet className="mr-3 h-5 w-5" />Certificates
+                    </Link>
+                    <Link to="/activities" className={navItemClass('/activities')}>
+                        <Clock className="mr-3 h-5 w-5" />Activities
+                    </Link>
+                    <Link to="/gap-analysis" className={navItemClass('/gap-analysis')}>
+                        <BarChart3 className="mr-3 h-5 w-5" />Gap Analysis
+                    </Link>
+                    <button 
+                        onClick={handleSupportClick}
+                        className={`${navItemClass(isAdmin ? '/admin/support' : '/support')} relative w-full text-left`}
+                    >
                         <MessageSquare className="mr-3 h-5 w-5" />
                         {isAdmin ? 'Admin Support' : 'Support'}
                         {supportUnread?.unreadCount > 0 && (
@@ -420,8 +540,10 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
                                 {supportUnread.unreadCount > 9 ? '9+' : supportUnread.unreadCount}
                             </span>
                         )}
-                    </a>
-                    <a href="#" className={navItemClass('subscription')} onClick={() => setPage('subscription')}><CreditCard className="mr-3 h-5 w-5" />Subscription</a>
+                    </button>
+                    <Link to="/subscription" className={navItemClass('/subscription')}>
+                        <CreditCard className="mr-3 h-5 w-5" />Subscription
+                    </Link>
                 </div>
                 <div className="text-sm border-t border-slate-200 pt-4 mt-4">
                     <div className="p-2 text-slate-700 font-medium">{profile?.company_name || '...'}</div>
@@ -436,19 +558,4 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
             </main>
         </div>
     );
-}
-
-function PageContent({ page, currentPageData, setPage, user, profile, session, onOpenExpiredModal, supportUnread }) {
-    switch (page) {
-        case 'dashboard': return <DashboardPage profile={profile} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
-        case 'staff': return <StaffPage setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
-        case 'staffDetail': return <StaffDetailPage currentPageData={currentPageData} setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
-        case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
-        case 'activities': return <ActivitiesPage user={user} session={session} />;
-        case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
-        case 'support': return <SupportPage session={session} supportUnread={supportUnread} />;
-        case 'admin-support': return <AdminSupportPage session={session} />;
-        case 'subscription': return <SubscriptionPage user={user} session={session} />;
-        default: return <div>Page not found</div>;
-    }
 }
