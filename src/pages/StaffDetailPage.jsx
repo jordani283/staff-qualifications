@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase.js';
-import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
-import { ArrowLeft, Plus, Trash2, Calendar, Download, FileText, User, Clock, Edit, AlertTriangle, X, CheckCircle, ExternalLink, Save, Shield, AlertCircle, RotateCcw, ChevronDown, ChevronUp, Upload, Eye, EyeOff, FileCheck, Calendar as CalendarIcon, Clock as ClockIcon, FileX, AlertTriangleIcon } from 'lucide-react';
+import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import CertificationModal from '../components/CertificationModal';
 import RenewCertificationModal from '../components/RenewCertificationModal';
-import { logCertificationCreated, logCertificationUpdated, logCertificationDeleted, logDocumentUploaded, logCertificationRenewed, logStaffDeleted } from '../utils/auditLogger.js';
+import { Plus, ArrowLeft, Trash2, FileText, RefreshCw, UserX } from 'lucide-react';
+import { 
+    logCertificationCreated, 
+    logCertificationDeleted, 
+    logDocumentUploaded,
+    fetchAuditTrail 
+} from '../utils/auditLogger.js';
+import { updateCertificationWithAudit } from '../utils/certificationEditing.js';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
 function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
@@ -135,10 +140,8 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
     );
 }
 
-export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
-    const { id: staffId } = useParams();
-    const navigate = useNavigate();
-    const [staffMember, setStaffMember] = useState(null);
+export default function StaffDetailPage({ currentPageData, setPage, user, session, onOpenExpiredModal }) {
+    const { staffMember } = currentPageData;
     const [certifications, setCertifications] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -159,36 +162,6 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
 
     // Get feature access permissions
     const { canCreate, canDelete, canAssign, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
-
-    // Fetch staff member data
-    const fetchStaffMember = useCallback(async () => {
-        if (!session || !staffId) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const { data: staffData, error: staffError } = await supabase
-                .from('staff')
-                .select('*')
-                .eq('id', staffId)
-                .eq('user_id', session.user.id)
-                .single();
-
-            if (staffError) {
-                console.error('Error fetching staff member:', staffError);
-                showToast('Staff member not found.', 'error');
-                navigate('/staff');
-                return;
-            }
-
-            setStaffMember(staffData);
-        } catch (error) {
-            console.error('Error fetching staff member:', error);
-            showToast('Error loading staff member.', 'error');
-            navigate('/staff');
-        }
-    }, [staffId, session, navigate]);
 
     // Utility function to calculate expiry date based on template validity period
     const calculateExpiryDate = useCallback((templateId, issueDateValue) => {
@@ -243,7 +216,7 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
     }, [issueDate, selectedTemplateId, templates, calculateExpiryDate]);
 
     const fetchStaffCertifications = useCallback(async () => {
-        if (!session || !staffMember) {
+        if (!session) {
             setLoading(false);
             return;
         }
@@ -275,17 +248,11 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
         }
         
         setLoading(false);
-    }, [staffMember, session]);
+    }, [staffMember.id, session]);
 
     useEffect(() => {
-        fetchStaffMember();
-    }, [fetchStaffMember]);
-
-    useEffect(() => {
-        if (staffMember) {
-            fetchStaffCertifications();
-        }
-    }, [fetchStaffCertifications, staffMember]);
+        fetchStaffCertifications();
+    }, [fetchStaffCertifications]);
 
     const handleAssignCertification = async (e) => {
         e.preventDefault();
@@ -372,44 +339,50 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
         // Log deletion before actually deleting
         await logCertificationDeleted(certificationToDelete.id, {
             template_name: certificationToDelete.template_name,
-            staff_name: staffMember.full_name
+            expiry_date: certificationToDelete.expiry_date
         });
-
+        
         const { error } = await supabase
             .from('staff_certifications')
             .delete()
             .eq('id', certificationToDelete.id);
-            
+        
         if(error) {
             showToast(error.message, 'error');
         } else {
-            showToast('Certification deleted.', 'success');
-            setShowDeleteDialog(false);
-            setCertificationToDelete(null);
+            showToast('Certification removed.', 'success');
             fetchStaffCertifications();
         }
+        
+        // Close dialog and reset state
+        setShowDeleteDialog(false);
+        setCertificationToDelete(null);
     };
 
     const fetchAuditTrailData = async (certificationId) => {
-        try {
-            const auditData = await fetchAuditTrail(certificationId);
-            setAuditTrail(auditData);
-        } catch (error) {
-            console.error('Error fetching audit trail:', error);
+        const { data, error } = await fetchAuditTrail(certificationId);
+        if (error) {
+            console.error('Failed to fetch audit trail:', error);
             setAuditTrail([]);
+        } else {
+            setAuditTrail(data || []);
         }
     };
 
     const handleCertificationClick = async (cert) => {
-        if (!canAssign) {
-            handleShowUpgradePrompt();
-            return;
-        }
-        setSelectedCertification(cert);
-        setShowCertModal(true);
-        
-        // Fetch audit trail for this certification
+        setSelectedCertification({
+            id: cert.id,
+            certification_name: cert.template_name,
+            staff_name: staffMember.full_name,
+            issue_date: cert.issue_date,
+            expiry_date: cert.expiry_date,
+            status: cert.status,
+            document_filename: cert.document_url ? cert.document_url.split('/').pop() : null,
+            document_url: cert.document_url,
+            notes: cert.notes
+        });
         await fetchAuditTrailData(cert.id);
+        setShowCertModal(true);
     };
 
     const handleCloseModal = () => {
@@ -419,22 +392,19 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
     };
 
     const handleSaveCertification = async (updates) => {
-        if (!selectedCertification) return;
-        
-        const { error } = await supabase
-            .from('staff_certifications')
-            .update(updates)
-            .eq('id', selectedCertification.id);
+        try {
+            const result = await updateCertificationWithAudit(selectedCertification.id, updates);
             
-        if (error) {
-            showToast(error.message, 'error');
-        } else {
-            // Log the update
-            await logCertificationUpdated(selectedCertification.id, updates);
+            if (result.error) {
+                throw new Error(result.error.message || 'Failed to update certification');
+            }
             
-            showToast('Certification updated successfully!', 'success');
+            showToast(result.message || 'Certification updated successfully!', 'success');
+            fetchStaffCertifications(); // Refresh the data
             handleCloseModal();
-            fetchStaffCertifications();
+        } catch (error) {
+            console.error('Failed to update certification:', error);
+            showToast(error.message || 'Failed to update certification', 'error');
         }
     };
 
@@ -442,104 +412,146 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
         if (onOpenExpiredModal) {
             onOpenExpiredModal();
         } else {
-            navigate('/subscription');
+            setShowUpgradeModal(true);
+            showToast('Upgrade your plan to manage certifications', 'error');
         }
+        console.log('Upgrade prompt triggered for certification management');
     };
 
+    // Handle opening the renewal modal
     const handleRenewCertification = (cert) => {
         setCertificationToRenew(cert);
         setShowRenewModal(true);
     };
 
+    // Handle successful renewal
     const handleRenewalSuccess = () => {
-        setShowRenewModal(false);
-        setCertificationToRenew(null);
+        // Refresh certifications list
         fetchStaffCertifications();
-    };
-
-    const handleCloseRenewalModal = () => {
-        setShowRenewModal(false);
         setCertificationToRenew(null);
+        setShowRenewModal(false);
     };
 
+    // Handle closing the renewal modal
+    const handleCloseRenewalModal = () => {
+        setCertificationToRenew(null);
+        setShowRenewModal(false);
+    };
+
+    // Handle staff deletion
     const handleDeleteStaff = async () => {
-        if (!session || !staffMember) {
-            showToast('No active session.', 'error');
-            return;
-        }
-        
-        // Log staff deletion before actually deleting
-        await logStaffDeleted(staffMember.id, {
-            staff_name: staffMember.full_name,
-            certifications_count: staffCertCount
-        });
+        if (!staffMember || !session) return;
 
-        const { error } = await supabase
-            .from('staff')
-            .delete()
-            .eq('id', staffMember.id);
-            
-        if(error) {
-            showToast(error.message, 'error');
-        } else {
-            showToast('Staff member deleted.', 'success');
-            navigate('/staff'); // Navigate back to staff list after successful deletion
+        setShowDeleteStaffDialog(false); // Close the confirmation modal
+
+        try {
+            // Step 1: Clean up associated documents in Supabase Storage
+            // Get all document URLs related to this staff member's certifications
+            const { data: certsToCleanup, error: certsCleanupError } = await supabase
+                .from('staff_certifications')
+                .select('document_url')
+                .eq('staff_id', staffMember.id)
+                .not('document_url', 'is', null);
+
+            if (certsCleanupError) {
+                console.error("Error fetching certs for document cleanup:", certsCleanupError);
+                showToast("Warning: Could not fetch all document paths for cleanup. Staff will still be deleted.", "warning");
+            }
+
+            // Clean up storage files if they exist
+            if (certsToCleanup && certsToCleanup.length > 0) {
+                const filePaths = certsToCleanup.map(cert => {
+                    try {
+                        // Extract the path from the full URL
+                        const url = new URL(cert.document_url);
+                        const pathParts = url.pathname.split('/');
+                        const pathIndex = pathParts.indexOf('certificates');
+                        if (pathIndex !== -1 && pathIndex < pathParts.length - 1) {
+                            return pathParts.slice(pathIndex + 1).join('/');
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error("Error parsing document URL:", error);
+                        return null;
+                    }
+                }).filter(path => path); // Filter out any null/undefined paths
+
+                if (filePaths.length > 0) {
+                    console.log("Attempting to delete files from storage:", filePaths);
+                    const { error: removeError } = await supabase.storage
+                        .from('certificates')
+                        .remove(filePaths);
+
+                    if (removeError) {
+                        console.error("Error deleting files from storage:", removeError);
+                        showToast("Warning: Failed to delete some associated documents from storage.", "warning");
+                    }
+                }
+            }
+
+            // Step 2: Call the Supabase RPC function to delete staff and cascade certifications
+            const { data, error } = await supabase.rpc('delete_staff_member', { 
+                p_staff_id: staffMember.id 
+            });
+
+            if (error) {
+                console.error("Error deleting staff:", error);
+                showToast(`Failed to delete staff member: ${error.message}`, "error");
+            } else if (data && data.status === 'error') {
+                showToast(`Failed to delete staff member: ${data.message}`, "error");
+            } else {
+                showToast(data.message || 'Staff member deleted successfully', "success");
+                setPage('staff'); // Navigate back to staff list after successful deletion
+            }
+        } catch (err) {
+            console.error("An unexpected error occurred during staff deletion:", err);
+            showToast("An unexpected error occurred during staff deletion.", "error");
         }
     };
-
-    if (loading) {
-        return <Spinner />;
-    }
-
-    if (!staffMember) {
-        return (
-            <div className="p-6 text-center">
-                <p className="text-slate-600">Staff member not found.</p>
-                <button
-                    onClick={() => navigate('/staff')}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    Back to Staff List
-                </button>
-            </div>
-        );
-    }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                    <button
-                        onClick={() => navigate('/staff')}
-                        className="flex items-center text-slate-600 hover:text-slate-900 mr-4"
-                    >
-                        <ArrowLeft className="w-5 h-5 mr-1" />
-                        Back to Staff
-                    </button>
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900">{staffMember.full_name}</h1>
-                        <p className="text-slate-600">{staffMember.job_title || 'No job title'}</p>
-                    </div>
+        <>
+            <div className="flex items-center mb-8">
+                <button 
+                    onClick={() => setPage('staff')} 
+                    className="mr-4 p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors"
+                    title="Back to Staff List"
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </button>
+                <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-slate-900">{staffMember.full_name}</h1>
+                    <p className="text-slate-600">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => setShowDeleteStaffDialog(true)}
-                        className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleRestrictedAction(
+                            () => setShowAssignDialog(true), 
+                            handleShowUpgradePrompt
+                        )}
+                        disabled={!canAssign}
+                        className={`${canAssign ? 'bg-emerald-600 hover:bg-emerald-700 shadow-sm' : 'bg-gray-400 cursor-not-allowed'} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
+                        title={canAssign ? 'Assign a new certification' : 'Upgrade to assign certifications'}
                     >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete Staff
+                       <Plus className="mr-2 h-4 w-4" /> 
+                       {getButtonText('Assign Certification', 'Upgrade to Assign')}
                     </button>
+                    
+                    {/* Delete Staff Button */}
                     <button
-                        onClick={canAssign ? (() => setShowAssignDialog(true)) : handleShowUpgradePrompt}
-                        className={`flex items-center px-4 py-2 rounded-lg transition-colors ${getButtonClass()}`}
+                        onClick={() => handleRestrictedAction(
+                            () => setShowDeleteStaffDialog(true),
+                            handleShowUpgradePrompt
+                        )}
+                        disabled={!canDelete}
+                        className={`${canDelete ? 'p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700' : 'p-2 rounded-lg text-gray-400 cursor-not-allowed'} transition-colors flex items-center`}
+                        title={canDelete ? `Delete ${staffMember.full_name}` : 'Upgrade to delete staff'}
                     >
-                        <Plus className="w-4 h-4 mr-2" />
-                        {getButtonText('Assign Certificate')}
+                        <Trash2 className="h-5 w-5" />
                     </button>
                 </div>
             </div>
-
+            
             <div id="staff-certifications-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200">
                     <h2 className="text-xl font-bold text-slate-900">Certifications</h2>
@@ -603,7 +615,7 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
                                                         className={`${canDelete ? 'text-emerald-600 hover:text-emerald-700' : 'text-gray-400 cursor-not-allowed'}`}
                                                         title={canDelete ? 'Renew certification' : 'Upgrade to renew certifications'}
                                                     >
-                                                        <RotateCcw className="h-4 w-4" />
+                                                        <RefreshCw className="h-4 w-4" />
                                                     </button>
                                                 )}
                                                 {/* Delete button */}
@@ -613,7 +625,7 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
                                                     className={`${canDelete ? 'text-red-600 hover:text-red-700' : 'text-gray-400 cursor-not-allowed'}`}
                                                     title={canDelete ? 'Remove certification' : 'Upgrade to remove certifications'}
                                                 >
-                                                    <X className="h-4 w-4" />
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -747,7 +759,7 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
                             <button 
                                 onClick={() => {
                                     setShowUpgradeModal(false);
-                                    navigate('/subscription');
+                                    setPage('subscription');
                                 }} 
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
@@ -824,6 +836,6 @@ export default function StaffDetailPage({ user, session, onOpenExpiredModal }) {
                     onRenewalSuccess={handleRenewalSuccess}
                 />
             )}
-        </div>
+        </>
     );
 }
