@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
 export default function StaffPage({ setPage, user, session, onOpenExpiredModal, currentPageData }) {
@@ -10,9 +10,11 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
     const [loading, setLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [staffToDelete, setStaffToDelete] = useState(null);
 
     // Get feature access permissions
-    const { canCreate, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
+    const { canCreate, canDelete, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
 
     const fetchStaffAndCerts = useCallback(async () => {
         if (!session) {
@@ -100,6 +102,89 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
         console.log('Upgrade prompt triggered for Add Staff');
     };
 
+    const confirmDeleteStaff = (staff) => {
+        if (!canDelete) {
+            handleShowUpgradePrompt();
+            return;
+        }
+        setStaffToDelete(staff);
+        setShowDeleteDialog(true);
+    };
+
+    const handleDeleteStaff = async () => {
+        if (!staffToDelete || !session) return;
+
+        setShowDeleteDialog(false);
+
+        try {
+            // Get certification count for this staff member
+            const certificationCount = staffToDelete.certs.green + staffToDelete.certs.amber + staffToDelete.certs.red;
+
+            // Clean up associated documents in Supabase Storage
+            const { data: certsToCleanup, error: certsCleanupError } = await supabase
+                .from('staff_certifications')
+                .select('document_url')
+                .eq('staff_id', staffToDelete.id)
+                .not('document_url', 'is', null);
+
+            if (certsCleanupError) {
+                console.error("Error fetching certs for document cleanup:", certsCleanupError);
+                showToast("Warning: Could not fetch all document paths for cleanup. Staff will still be deleted.", "warning");
+            }
+
+            // Clean up storage files if they exist
+            if (certsToCleanup && certsToCleanup.length > 0) {
+                const filePaths = certsToCleanup.map(cert => {
+                    try {
+                        // Extract the path from the full URL
+                        const url = new URL(cert.document_url);
+                        const pathParts = url.pathname.split('/');
+                        const pathIndex = pathParts.indexOf('certificates');
+                        if (pathIndex !== -1 && pathIndex < pathParts.length - 1) {
+                            return pathParts.slice(pathIndex + 1).join('/');
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error("Error parsing document URL:", error);
+                        return null;
+                    }
+                }).filter(path => path);
+
+                if (filePaths.length > 0) {
+                    console.log("Attempting to delete files from storage:", filePaths);
+                    const { error: removeError } = await supabase.storage
+                        .from('certificates')
+                        .remove(filePaths);
+
+                    if (removeError) {
+                        console.error("Error deleting files from storage:", removeError);
+                        showToast("Warning: Failed to delete some associated documents from storage.", "warning");
+                    }
+                }
+            }
+
+            // Call the Supabase RPC function to delete staff and cascade certifications
+            const { data, error } = await supabase.rpc('delete_staff_member', { 
+                p_staff_id: staffToDelete.id 
+            });
+
+            if (error) {
+                console.error("Error deleting staff:", error);
+                showToast(`Failed to delete staff member: ${error.message}`, "error");
+            } else if (data && data.status === 'error') {
+                showToast(`Failed to delete staff member: ${data.message}`, "error");
+            } else {
+                showToast(data.message || 'Staff member deleted successfully', "success");
+                fetchStaffAndCerts(); // Refresh the staff list
+            }
+        } catch (err) {
+            console.error("An unexpected error occurred during staff deletion:", err);
+            showToast("An unexpected error occurred during staff deletion.", "error");
+        } finally {
+            setStaffToDelete(null);
+        }
+    };
+
     return (
         <>
             <div className="flex justify-between items-center mb-8">
@@ -139,17 +224,31 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                                     <th className="p-4 text-center">Up-to-Date</th>
                                     <th className="p-4 text-center">Expiring Soon</th>
                                     <th className="p-4 text-center">Expired</th>
+                                    <th className="p-4 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {staffWithCerts.map(s => (
-                                <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors" onClick={() => setPage('staffDetail', { staffMember: s })}>
-                                    <td className="p-4 font-medium text-white">{s.full_name}</td>
-                                    <td className="p-4 text-slate-300">{s.job_title || '-'}</td>
-                                    <td className="p-4 text-slate-300">{s.email || '-'}</td>
-                                    <td className="p-4 text-center font-medium text-green-400">{s.certs.green}</td>
-                                    <td className="p-4 text-center font-medium text-amber-400">{s.certs.amber}</td>
-                                    <td className="p-4 text-center font-medium text-red-400">{s.certs.red}</td>
+                                <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
+                                    <td className="p-4 font-medium text-white cursor-pointer hover:text-sky-400" onClick={() => setPage('staffDetail', { staffMember: s })} title="Click to view details">{s.full_name}</td>
+                                    <td className="p-4 text-slate-300 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.job_title || '-'}</td>
+                                    <td className="p-4 text-slate-300 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.email || '-'}</td>
+                                    <td className="p-4 text-center font-medium text-green-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.green}</td>
+                                    <td className="p-4 text-center font-medium text-amber-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.amber}</td>
+                                    <td className="p-4 text-center font-medium text-red-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.red}</td>
+                                    <td className="p-4 text-center">
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                confirmDeleteStaff(s);
+                                            }}
+                                            disabled={!canDelete}
+                                            className={`${canDelete ? 'text-red-400 hover:text-red-300 hover:bg-red-500/20' : 'text-gray-500 cursor-not-allowed'} p-1 rounded transition-colors`}
+                                            title={canDelete ? `Delete ${s.full_name}` : 'Upgrade to delete staff'}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             </tbody>
@@ -200,6 +299,49 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                                 className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
                             >
                                 Upgrade Now
+                            </button>
+                        </div>
+                    </div>
+                </Dialog>
+            )}
+
+            {/* Delete Staff Confirmation Dialog */}
+            {showDeleteDialog && staffToDelete && (
+                <Dialog
+                    id="delete-staff-dialog"
+                    title="Confirm Staff Deletion"
+                    onClose={() => {
+                        setShowDeleteDialog(false);
+                        setStaffToDelete(null);
+                    }}
+                >
+                    <div className="space-y-4">
+                        <p className="text-slate-300">
+                            Are you sure you want to permanently delete <span className="font-semibold text-white">{staffToDelete.full_name}</span>?
+                        </p>
+                        {(staffToDelete.certs.green + staffToDelete.certs.amber + staffToDelete.certs.red) > 0 && (
+                            <p className="text-red-400 font-medium">
+                                This will also permanently delete {staffToDelete.certs.green + staffToDelete.certs.amber + staffToDelete.certs.red} associated certifications and their audit records.
+                            </p>
+                        )}
+                        <p className="text-red-400 text-sm font-semibold">
+                            This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button 
+                                onClick={() => {
+                                    setShowDeleteDialog(false);
+                                    setStaffToDelete(null);
+                                }} 
+                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleDeleteStaff} 
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                            >
+                                Delete Staff Member
                             </button>
                         </div>
                     </div>

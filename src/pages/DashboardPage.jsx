@@ -270,6 +270,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
         setSelectedCertification({
             id: cert.id,
             certification_name: cert.template_name,
+            staff_name: cert.staff_name,
             issue_date: cert.issue_date,
             expiry_date: cert.expiry_date,
             status: cert.status,

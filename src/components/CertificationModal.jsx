@@ -157,6 +157,7 @@ const CertificationModal = ({
               {/* Labels Column */}
               <div className="space-y-4 text-sm font-medium text-slate-300">
                 <div className="h-6 flex items-center">Certification Name</div>
+                <div className="h-6 flex items-center">Staff</div>
                 <div className="h-6 flex items-center">Issue Date</div>
                 <div className="h-6 flex items-center">Expiry Date</div>
                 <div className="h-6 flex items-center">Status</div>
@@ -169,6 +170,9 @@ const CertificationModal = ({
               <div className="md:col-span-2 space-y-4">
                 <div className="h-6 flex items-center text-white font-medium">
                   {certification.certification_name || 'Not specified'}
+                </div>
+                <div className="h-6 flex items-center text-slate-200">
+                  {certification.staff_name || 'Not specified'}
                 </div>
                 <div className="h-6 flex items-center text-slate-200">
                   {formatDate(certification.issue_date)}
@@ -298,6 +302,7 @@ CertificationModal.propTypes = {
   certification: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     certification_name: PropTypes.string,
+    staff_name: PropTypes.string,
     issue_date: PropTypes.string,
     expiry_date: PropTypes.string,
     status: PropTypes.string,

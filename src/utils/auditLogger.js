@@ -12,6 +12,12 @@ export const AUDIT_ACTIONS = {
   RENEW: 'RENEW'
 };
 
+export const STAFF_AUDIT_ACTIONS = {
+  STAFF_CREATED: 'STAFF_CREATED',
+  STAFF_UPDATED: 'STAFF_UPDATED',
+  STAFF_DELETED: 'STAFF_DELETED'
+};
+
 /**
  * Log an audit trail entry for certification actions
  * @param {Object} params - Audit log parameters
@@ -251,4 +257,46 @@ export function getFieldChanges(oldData, newData, fieldsToTrack) {
   });
   
   return changes;
+}
+
+/**
+ * Log staff deletion audit entry
+ * @param {string} staffId - UUID of the staff member
+ * @param {Object} staffData - The staff data before deletion
+ * @param {number} certificationCount - Number of certifications that were deleted
+ * @returns {Promise<Object>} Result of the audit log
+ */
+export async function logStaffDeleted(staffId, staffData, certificationCount = 0) {
+  try {
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Failed to get user for staff deletion audit log:', userError);
+      return { error: userError || new Error('No authenticated user') };
+    }
+
+    // Insert staff audit log entry
+    const { data, error } = await supabase
+      .from('staff_audit_logs')
+      .insert({
+        user_id: user.id,
+        staff_id: staffId,
+        event_type: STAFF_AUDIT_ACTIONS.STAFF_DELETED,
+        event_description: `Staff member deleted: ${staffData.full_name || 'Unknown'} (with ${certificationCount} certifications)`,
+        old_data: staffData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to log staff deletion audit entry:', error);
+      return { error };
+    }
+
+    return { data };
+  } catch (err) {
+    console.error('Unexpected error logging staff deletion audit entry:', err);
+    return { error: err };
+  }
 } 
