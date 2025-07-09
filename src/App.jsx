@@ -8,6 +8,7 @@ import { useTrialStatus } from './hooks/useTrialStatus.js';
 import { useSupportUnread } from './hooks/useSupportUnread.js';
 import TrialExpiryBanner from './components/TrialExpiryBanner.jsx';
 import TrialExpiredModal from './components/TrialExpiredModal.jsx';
+import GAPageViewTracker from './utils/GAPageViewTracker';
 
 // Page Components
 import LandingPage from './pages/LandingPage';
@@ -369,7 +370,13 @@ export default function App() {
         );
     }
     
-    return <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden flex-col'}>{pageContent}</div>;
+    return (
+        <div id="app" className={page === 'landing' || page === 'pricing' ? '' : 'flex h-screen w-screen overflow-hidden flex-col'}>
+            {/* Google Analytics 4 Page View Tracker */}
+            <GAPageViewTracker currentPage={page} user={user} />
+            {pageContent}
+        </div>
+    );
 }
 
 // --- Layout Components ---
