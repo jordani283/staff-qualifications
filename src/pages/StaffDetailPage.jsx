@@ -111,27 +111,27 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
             <form id="assign-cert-form" onSubmit={handleAssignCert} className="space-y-4">
                 <input type="hidden" name="staff_id" value={staffId} />
                 <div>
-                    <label htmlFor="template_select" className="block text-sm font-medium text-slate-300 mb-1">Certification Type</label>
-                    <select id="template_select" name="template_id" required onChange={handleTemplateChange} className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500">
+                    <label htmlFor="template_select" className="block text-sm font-medium text-slate-700 mb-2">Certification Type</label>
+                    <select id="template_select" name="template_id" required onChange={handleTemplateChange} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors">
                         <option value="">Loading templates...</option>
                         {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                 </div>
                  <div>
-                    <label htmlFor="issue_date" className="block text-sm font-medium text-slate-300 mb-1">Issue Date</label>
-                    <input id="issue_date" name="issue_date" type="date" required onChange={handleIssueDateChange} value={issueDate} className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                    <label htmlFor="issue_date" className="block text-sm font-medium text-slate-700 mb-2">Issue Date</label>
+                    <input id="issue_date" name="issue_date" type="date" required onChange={handleIssueDateChange} value={issueDate} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                 </div>
                  <div>
-                    <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-300 mb-1">Expiry Date</label>
-                    <input id="expiry_date" name="expiry_date" type="date" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                    <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-700 mb-2">Expiry Date</label>
+                    <input id="expiry_date" name="expiry_date" type="date" required className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                 </div>
                 <div>
-                    <label htmlFor="document_upload" className="block text-sm font-medium text-slate-300 mb-1">Upload Document (Optional)</label>
-                    <input id="document_upload" name="document" type="file" className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-600 file:text-sky-300 hover:file:bg-slate-500 transition-colors" />
+                    <label htmlFor="document_upload" className="block text-sm font-medium text-slate-700 mb-2">Upload Document (Optional)</label>
+                    <input id="document_upload" name="document" type="file" className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors" />
                 </div>
                 <div className="flex justify-end pt-4 gap-3">
-                    <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
-                    <button type="submit" disabled={isSubmitting} form="assign-cert-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50">
+                    <button type="button" onClick={onClose} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" disabled={isSubmitting} form="assign-cert-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50">
                         {isSubmitting ? 'Assigning...' : 'Assign Certification'}
                     </button>
                 </div>
@@ -514,14 +514,14 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             <div className="flex items-center mb-8">
                 <button 
                     onClick={() => setPage('staff')} 
-                    className="mr-4 p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+                    className="mr-4 p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors"
                     title="Back to Staff List"
                 >
                     <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold text-white">{staffMember.full_name}</h1>
-                    <p className="text-slate-400">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
+                    <h1 className="text-3xl font-bold text-slate-900">{staffMember.full_name}</h1>
+                    <p className="text-slate-600">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
                 </div>
                 <div className="flex gap-3">
                     <button 
@@ -530,7 +530,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             handleShowUpgradePrompt
                         )}
                         disabled={!canAssign}
-                        className={`${canAssign ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-500 cursor-not-allowed'} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                        className={`${canAssign ? 'bg-emerald-600 hover:bg-emerald-700 shadow-sm' : 'bg-gray-400 cursor-not-allowed'} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
                         title={canAssign ? 'Assign a new certification' : 'Upgrade to assign certifications'}
                     >
                        <Plus className="mr-2 h-4 w-4" /> 
@@ -544,7 +544,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             handleShowUpgradePrompt
                         )}
                         disabled={!canDelete}
-                        className={`${canDelete ? 'p-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'p-2 rounded-full text-gray-500 cursor-not-allowed'} transition-colors flex items-center`}
+                        className={`${canDelete ? 'p-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700' : 'p-2 rounded-lg text-gray-400 cursor-not-allowed'} transition-colors flex items-center`}
                         title={canDelete ? `Delete ${staffMember.full_name}` : 'Upgrade to delete staff'}
                     >
                         <Trash2 className="h-5 w-5" />
@@ -552,13 +552,13 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                 </div>
             </div>
             
-            <div id="staff-certifications-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
-                <div className="p-4 bg-slate-800 border-b border-slate-700">
-                    <h2 className="text-xl font-bold text-white">Certifications</h2>
+            <div id="staff-certifications-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-200">
+                    <h2 className="text-xl font-bold text-slate-900">Certifications</h2>
                 </div>
                 {loading ? <Spinner /> : (
                     certifications.length === 0 ? (
-                        <p className="p-6 text-center text-slate-400">
+                        <p className="p-6 text-center text-slate-500">
                             {canAssign 
                                 ? "No certifications assigned yet. Click 'Assign Certification' to begin."
                                 : "No certifications found. Upgrade your plan to assign and manage certifications."
@@ -566,7 +566,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                         </p>
                     ) : (
                         <table className="w-full text-left">
-                            <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
+                            <thead className="bg-slate-50 text-xs text-slate-600 uppercase font-medium">
                                 <tr>
                                     <th className="p-4">Certification</th>
                                     <th className="p-4">Issue Date</th>
@@ -579,20 +579,20 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             <tbody>
                                 {certifications.map(cert => (
                                     <tr key={cert.id} 
-                                        className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                                        className="border-t border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
                                         onClick={() => handleCertificationClick(cert)}
                                         title="Click to view/edit details"
                                     >
-                                        <td className="p-4 font-medium text-white hover:text-sky-400">
+                                        <td className="p-4 font-medium text-slate-900 hover:text-emerald-600">
                                             {cert.template_name}
                                         </td>
-                                        <td className="p-4 text-slate-300">{cert.issue_date}</td>
-                                        <td className="p-4 text-slate-300">{cert.expiry_date}</td>
+                                        <td className="p-4 text-slate-700">{cert.issue_date}</td>
+                                        <td className="p-4 text-slate-700">{cert.expiry_date}</td>
                                         <td className="p-4"><StatusBadge status={cert.status} /></td>
                                         <td className="p-4">
                                             {cert.document_url ? (
                                                 <a href={cert.document_url} target="_blank" rel="noopener noreferrer" 
-                                                   className="text-sky-400 hover:text-sky-300 flex items-center"
+                                                   className="text-emerald-600 hover:text-emerald-700 flex items-center"
                                                    onClick={(e) => e.stopPropagation()}
                                                 >
                                                     <FileText className="h-4 w-4 mr-1" />
@@ -612,7 +612,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                                             handleShowUpgradePrompt
                                                         )}
                                                         disabled={!canDelete}
-                                                        className={`${canDelete ? 'text-green-400 hover:text-green-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                        className={`${canDelete ? 'text-emerald-600 hover:text-emerald-700' : 'text-gray-400 cursor-not-allowed'}`}
                                                         title={canDelete ? 'Renew certification' : 'Upgrade to renew certifications'}
                                                     >
                                                         <RefreshCw className="h-4 w-4" />
@@ -622,7 +622,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                                 <button 
                                                     onClick={() => confirmDeleteCertification(cert)} 
                                                     disabled={!canDelete}
-                                                    className={`${canDelete ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                    className={`${canDelete ? 'text-red-600 hover:text-red-700' : 'text-gray-400 cursor-not-allowed'}`}
                                                     title={canDelete ? 'Remove certification' : 'Upgrade to remove certifications'}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -650,14 +650,14 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                 >
                     <form id="assign-certification-form" onSubmit={handleAssignCertification} className="space-y-4">
                         <div>
-                            <label htmlFor="template_id" className="block text-sm font-medium text-slate-300 mb-1">Certificate Type</label>
+                            <label htmlFor="template_id" className="block text-sm font-medium text-slate-700 mb-2">Certificate Type</label>
                             <select 
                                 id="template_id" 
                                 name="template_id" 
                                 value={selectedTemplateId}
                                 onChange={handleTemplateChange}
                                 required 
-                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                             >
                                 <option value="">Select a certificate type...</option>
                                 {templates.map(template => (
@@ -666,7 +666,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="issue_date" className="block text-sm font-medium text-slate-300 mb-1">Issue Date</label>
+                            <label htmlFor="issue_date" className="block text-sm font-medium text-slate-700 mb-2">Issue Date</label>
                             <input 
                                 id="issue_date" 
                                 name="issue_date" 
@@ -674,11 +674,11 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 value={issueDate}
                                 onChange={handleIssueDateChange}
                                 required 
-                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" 
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
                             />
                         </div>
                         <div>
-                            <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-300 mb-1">Expiry Date</label>
+                            <label htmlFor="expiry_date" className="block text-sm font-medium text-slate-700 mb-2">Expiry Date</label>
                             <input 
                                 id="expiry_date" 
                                 name="expiry_date" 
@@ -686,16 +686,16 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 value={expiryDate}
                                 onChange={(e) => setExpiryDate(e.target.value)}
                                 required 
-                                className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" 
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
                             />
                         </div>
                         <div>
-                            <label htmlFor="document" className="block text-sm font-medium text-slate-300 mb-1">Document (Optional)</label>
-                            <input id="document" name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="document" className="block text-sm font-medium text-slate-700 mb-2">Document (Optional)</label>
+                            <input id="document" name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors" />
                         </div>
                         <div>
-                            <label htmlFor="notes" className="block text-sm font-medium text-slate-300 mb-1">Notes (Optional)</label>
-                            <textarea id="notes" name="notes" rows="3" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-2">Notes (Optional)</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Add any additional notes..." className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
@@ -706,11 +706,11 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                     setExpiryDate('');
                                     setSelectedTemplateId('');
                                 }} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
-                            <button type="submit" form="assign-certification-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-md">Assign Certification</button>
+                            <button type="submit" form="assign-certification-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm">Assign Certification</button>
                         </div>
                     </form>
                 </Dialog>
@@ -719,22 +719,22 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             {showDeleteDialog && certificationToDelete && canDelete && (
                 <Dialog id="delete-certification-dialog" title="Confirm Removal" onClose={() => setShowDeleteDialog(false)}>
                     <div className="space-y-4">
-                        <p className="text-slate-300">
-                            Are you sure you want to remove the <span className="font-semibold text-white">"{certificationToDelete.template_name}"</span> certification from {staffMember.full_name}?
+                        <p className="text-slate-600">
+                            Are you sure you want to remove the <span className="font-semibold text-slate-900">"{certificationToDelete.template_name}"</span> certification from {staffMember.full_name}?
                         </p>
-                        <p className="text-red-400 text-sm">
+                        <p className="text-red-600 text-sm">
                             This action cannot be undone.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowDeleteDialog(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDeleteCertification} 
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Remove Certification
                             </button>
@@ -746,13 +746,13 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             {showUpgradeModal && (
                 <Dialog id="upgrade-prompt-dialog" title="Upgrade Required" onClose={() => setShowUpgradeModal(false)}>
                     <div className="space-y-4">
-                        <p className="text-slate-300">
+                        <p className="text-slate-600">
                             Your trial has expired. Upgrade your plan to assign and manage certifications.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowUpgradeModal(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Close
                             </button>
@@ -761,7 +761,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                     setShowUpgradeModal(false);
                                     setPage('subscription');
                                 }} 
-                                className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Upgrade Now
                             </button>
@@ -778,27 +778,27 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                     onClose={() => setShowDeleteStaffDialog(false)}
                 >
                     <div className="space-y-4">
-                        <p className="text-slate-300">
-                            Are you sure you want to permanently delete <span className="font-semibold text-white">{staffMember.full_name}</span>?
+                        <p className="text-slate-600">
+                            Are you sure you want to permanently delete <span className="font-semibold text-slate-900">{staffMember.full_name}</span>?
                         </p>
                         {staffCertCount > 0 && (
-                            <p className="text-red-400 font-medium">
+                            <p className="text-red-600 font-medium">
                                 This will also permanently delete {staffCertCount} associated certifications and their audit records.
                             </p>
                         )}
-                        <p className="text-red-400 text-sm font-semibold">
+                        <p className="text-red-600 text-sm font-semibold">
                             This action cannot be undone.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowDeleteStaffDialog(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDeleteStaff} 
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Delete Staff Member
                             </button>

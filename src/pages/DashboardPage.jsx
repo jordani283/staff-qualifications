@@ -311,16 +311,16 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
         <>
             <div className="flex justify-between items-start mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">
                         {profile?.company_name ? `${profile.company_name}'s Dashboard` : 'Dashboard'}
                     </h1>
-                    <p className="text-slate-400">Here's your team's compliance overview.</p>
+                    <p className="text-slate-600">Here's your team's compliance overview.</p>
                 </div>
                 <div className="flex gap-3">
                     <button 
                         onClick={() => handleRestrictedAction(handleAddStaff, handleShowUpgradePrompt)}
                         disabled={!canCreate}
-                        className={`${getButtonClass('bg-sky-600 hover:bg-sky-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                        className={`${getButtonClass('bg-blue-600 hover:bg-blue-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
                         title={canCreate ? 'Add a new staff member' : 'Upgrade to add staff members'}
                     >
                         <Users className="mr-2 h-4 w-4" /> 
@@ -329,7 +329,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                     <button 
                         onClick={() => handleRestrictedAction(handleAddCertificate, handleShowUpgradePrompt)}
                         disabled={!canCreate}
-                        className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                        className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
                         title={canCreate ? 'Create a new certificate template' : 'Upgrade to create certificates'}
                     >
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> 
@@ -347,17 +347,17 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                     </>
                 ) : (
                     <>
-                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                           <h3 className="text-sm font-medium text-green-400">Up-to-Date</h3>
-                           <p className="text-3xl font-bold text-white mt-1">{metrics.green}</p>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                           <h3 className="text-sm font-medium text-emerald-600">Up-to-Date</h3>
+                           <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.green}</p>
                        </div>
-                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                           <h3 className="text-sm font-medium text-amber-400">Expiring Soon</h3>
-                           <p className="text-3xl font-bold text-white mt-1">{metrics.amber}</p>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                           <h3 className="text-sm font-medium text-amber-600">Expiring Soon</h3>
+                           <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.amber}</p>
                        </div>
-                        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                           <h3 className="text-sm font-medium text-red-400">Expired</h3>
-                           <p className="text-3xl font-bold text-white mt-1">{metrics.red}</p>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                           <h3 className="text-sm font-medium text-red-600">Expired</h3>
+                           <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.red}</p>
                        </div>
                     </>
                 )}
@@ -369,24 +369,24 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
             </div>
 
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">Action Needed</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Action Needed</h2>
                 <button 
                     onClick={() => handleRestrictedAction(handleExportCsv, handleShowUpgradePrompt)}
                     disabled={!canExport}
-                    className={`${getButtonClass('bg-slate-700 hover:bg-slate-600', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center text-sm`}
+                    className={`${getButtonClass('bg-slate-600 hover:bg-slate-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center text-sm`}
                     title={canExport ? 'Export all certifications to CSV' : 'Upgrade to export data'}
                 >
                     <Download className="mr-2 h-4 w-4" /> 
                     {getButtonText('Export All to CSV', 'Upgrade to Export')}
                 </button>
             </div>
-            <div id="dashboard-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
+            <div id="dashboard-table-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? <Spinner /> : (
                     certs.length === 0 ? (
-                        <div className="p-6 text-center text-slate-400">No actions needed. All certifications are up-to-date!</div>
+                        <div className="p-6 text-center text-slate-500">No actions needed. All certifications are up-to-date!</div>
                     ) : (
                         <table className="w-full text-left">
-                            <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
+                            <thead className="bg-slate-50 text-xs text-slate-600 uppercase font-medium">
                                 <tr>
                                     <th className="p-4">Staff Member</th>
                                     <th className="p-4">Certification</th>
@@ -397,10 +397,10 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                             </thead>
                             <tbody>
                                 {certs.map(cert => (
-                                    <tr key={cert.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
-                                        <td className="p-4 font-medium text-white cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.staff_name}</td>
-                                        <td className="p-4 text-slate-300 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.template_name}</td>
-                                        <td className="p-4 text-slate-300 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.expiry_date}</td>
+                                    <tr key={cert.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                                        <td className="p-4 font-medium text-slate-900 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.staff_name}</td>
+                                        <td className="p-4 text-slate-700 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.template_name}</td>
+                                        <td className="p-4 text-slate-700 cursor-pointer" onClick={() => handleCertificationClick(cert)}>{cert.expiry_date}</td>
                                         <td className="p-4 cursor-pointer" onClick={() => handleCertificationClick(cert)}><StatusBadge status={cert.status} /></td>
                                         <td className="p-4">
                                             {(cert.status === 'Expiring Soon' || cert.status === 'Expired') && (
@@ -409,7 +409,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                                                         e.stopPropagation();
                                                         handleRenewCertification(cert);
                                                     }}
-                                                    className="p-1 text-green-400 hover:text-green-300 hover:bg-slate-700 rounded transition-colors"
+                                                    className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                                                     title="Renew certification"
                                                 >
                                                     <RefreshCw className="w-4 h-4" />

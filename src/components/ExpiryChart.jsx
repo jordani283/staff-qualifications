@@ -31,17 +31,17 @@ const CustomTooltip = ({ active, payload, label }) => {
         const certDetails = payload[0].payload.certDetails || [];
         
         return (
-            <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg max-w-xs">
-                <p className="text-slate-200 font-medium mb-2">{formattedDate}</p>
-                <p className="text-amber-400 font-medium mb-2">
+            <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-lg max-w-xs">
+                <p className="text-slate-900 font-medium mb-2">{formattedDate}</p>
+                <p className="text-amber-600 font-medium mb-2">
                     {payload[0].value} certificate{payload[0].value !== 1 ? 's' : ''} expiring
                 </p>
                 {certDetails.length > 0 && (
                     <div className="space-y-1">
                         {certDetails.map((cert, index) => (
-                            <div key={index} className="text-xs border-t border-slate-600 pt-1">
-                                <p className="text-slate-300 font-medium">{cert.staff_name}</p>
-                                <p className="text-slate-400">{cert.template_name}</p>
+                            <div key={index} className="text-xs border-t border-slate-200 pt-1">
+                                <p className="text-slate-700 font-medium">{cert.staff_name}</p>
+                                <p className="text-slate-500">{cert.template_name}</p>
                             </div>
                         ))}
                     </div>
@@ -93,13 +93,13 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
 
     if (loading) {
         return (
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white">Upcoming Certificate Expiries</h2>
+                    <h2 className="text-2xl font-bold text-slate-900">Upcoming Certificate Expiries</h2>
                     <div className="flex gap-3">
-                        <div className="w-32 h-8 bg-slate-700 rounded animate-pulse"></div>
-                        <div className="w-32 h-8 bg-slate-700 rounded animate-pulse"></div>
-                        <div className="w-40 h-8 bg-slate-700 rounded animate-pulse"></div>
+                        <div className="w-32 h-8 bg-slate-200 rounded animate-pulse"></div>
+                        <div className="w-32 h-8 bg-slate-200 rounded animate-pulse"></div>
+                        <div className="w-40 h-8 bg-slate-200 rounded animate-pulse"></div>
                     </div>
                 </div>
                 <CardSpinner title="Loading chart data..." />
@@ -109,26 +109,26 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
 
     if (!data || data.length === 0) {
         return (
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white">Upcoming Certificate Expiries</h2>
+                    <h2 className="text-2xl font-bold text-slate-900">Upcoming Certificate Expiries</h2>
                     <div className="flex gap-3">
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         />
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         />
                         <select
                             value={selectedStaff}
                             onChange={(e) => setSelectedStaff(e.target.value)}
-                            className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         >
                             <option value="">All Staff</option>
                             {staffMembers.map(staff => (
@@ -138,33 +138,33 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                     </div>
                 </div>
                 <div className="h-64 flex items-center justify-center">
-                    <p className="text-slate-400 text-center">No expiries found for the selected filters</p>
+                    <p className="text-slate-500 text-center">No expiries found for the selected filters</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-white">Upcoming Certificate Expiries</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Upcoming Certificate Expiries</h2>
                 <div className="flex gap-3">
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     />
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     />
                     <select
                         value={selectedStaff}
                         onChange={(e) => setSelectedStaff(e.target.value)}
-                        className="bg-slate-700 border-slate-600 rounded-md px-3 py-1 text-white text-sm focus:ring-2 focus:ring-sky-500"
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     >
                         <option value="">All Staff</option>
                         {staffMembers.map(staff => (
@@ -184,10 +184,10 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                             bottom: 60
                         }}
                     >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                         <XAxis 
                             dataKey="date"
-                            stroke="#9CA3AF"
+                            stroke="#64748B"
                             fontSize={12}
                             tickFormatter={(value, index, payload) => {
                                 const date = new Date(value);
@@ -210,11 +210,11 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                                 value: data.length > 0 && data[0].isWeekly ? 'Week Starting' : 'Expiry Date', 
                                 position: 'insideBottom', 
                                 offset: -5,
-                                style: { textAnchor: 'middle', fill: '#9CA3AF' }
+                                style: { textAnchor: 'middle', fill: '#64748B' }
                             }}
                         />
                         <YAxis 
-                            stroke="#9CA3AF"
+                            stroke="#64748B"
                             fontSize={12}
                             allowDecimals={false}
                             domain={[0, 'dataMax']}
@@ -222,13 +222,13 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                                 value: 'Certificates Expiring', 
                                 angle: -90, 
                                 position: 'insideLeft',
-                                style: { textAnchor: 'middle', fill: '#9CA3AF' }
+                                style: { textAnchor: 'middle', fill: '#64748B' }
                             }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar 
                             dataKey="count" 
-                            fill="#FFFFFF"
+                            fill="#10B981"
                             radius={[4, 4, 0, 0]}
                             className="hover:opacity-80 transition-opacity"
                         />

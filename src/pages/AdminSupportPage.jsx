@@ -355,8 +355,8 @@ const AdminSupportPage = ({ session }) => {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                    <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-400">Please log in to access admin dashboard</p>
+                    <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-600">Please log in to access admin dashboard</p>
                 </div>
             </div>
         );
@@ -366,9 +366,9 @@ const AdminSupportPage = ({ session }) => {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                    <Shield className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                    <p className="text-red-400">Access Denied</p>
-                    <p className="text-slate-400">You don't have permission to access the admin dashboard</p>
+                    <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600">Access Denied</p>
+                    <p className="text-slate-600">You don't have permission to access the admin dashboard</p>
                 </div>
             </div>
         );
@@ -378,25 +378,25 @@ const AdminSupportPage = ({ session }) => {
         <div className="max-w-7xl mx-auto p-6">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <Shield className="w-8 h-8 text-sky-400" />
-                <h1 className="text-3xl font-bold text-white">Support Admin Dashboard</h1>
+                <Shield className="w-8 h-8 text-emerald-600" />
+                <h1 className="text-3xl font-bold text-slate-900">Support Admin Dashboard</h1>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[700px]">
                 {/* User List */}
-                <div className="lg:col-span-1 bg-slate-800 rounded-lg border border-slate-700 flex flex-col">
-                    <div className="p-4 border-b border-slate-700">
-                        <h2 className="text-lg font-semibold text-white mb-3">User Conversations</h2>
+                <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm">
+                    <div className="p-4 border-b border-slate-200">
+                        <h2 className="text-lg font-semibold text-slate-900 mb-3">User Conversations</h2>
                         
                         {/* Search */}
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
                                 placeholder="Search users..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                         </div>
                     </div>
@@ -405,11 +405,11 @@ const AdminSupportPage = ({ session }) => {
                     <div className="flex-1 overflow-y-auto">
                         {isLoading ? (
                             <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-400"></div>
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500"></div>
                             </div>
                         ) : filteredUsers.length === 0 ? (
-                            <div className="p-4 text-center text-slate-400">
-                                <Users className="w-8 h-8 mx-auto mb-2" />
+                            <div className="p-4 text-center text-slate-500">
+                                <Users className="w-8 h-8 mx-auto mb-2 text-slate-400" />
                                 <p>No conversations found</p>
                             </div>
                         ) : (
@@ -419,14 +419,14 @@ const AdminSupportPage = ({ session }) => {
                                     <div
                                         key={chat.user_id}
                                         onClick={() => handleUserSelect(chat.user_id)}
-                                        className={`p-4 border-b border-slate-700 cursor-pointer transition-colors ${
-                                            selectedUserId === chat.user_id ? 'bg-sky-600/20' : 'hover:bg-slate-700/50'
+                                        className={`p-4 border-b border-slate-200 cursor-pointer transition-colors ${
+                                            selectedUserId === chat.user_id ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-slate-50'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-white font-medium truncate">{userName}</h3>
-                                                <p className="text-slate-400 text-sm truncate">{chat.profiles?.company_name}</p>
+                                                <h3 className="text-slate-900 font-medium truncate">{userName}</h3>
+                                                <p className="text-slate-600 text-sm truncate">{chat.profiles?.company_name}</p>
                                                 {chat.last_user_message_at && (
                                                     <p className="text-slate-500 text-xs">
                                                         Last message: {formatTimestamp(chat.last_user_message_at)}
@@ -434,7 +434,7 @@ const AdminSupportPage = ({ session }) => {
                                                 )}
                                             </div>
                                             {chat.unread_admin_messages > 0 && (
-                                                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                                <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
                                                     {chat.unread_admin_messages}
                                                 </span>
                                             )}
@@ -447,19 +447,19 @@ const AdminSupportPage = ({ session }) => {
                 </div>
 
                 {/* Chat Area */}
-                <div className="lg:col-span-2 bg-slate-800 rounded-lg border border-slate-700 flex flex-col">
+                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm">
                     {selectedUserId ? (
                         <>
                             {/* Chat Header */}
-                            <div className="p-4 border-b border-slate-700">
-                                <h3 className="text-lg font-semibold text-white">
+                            <div className="p-4 border-b border-slate-200">
+                                <h3 className="text-lg font-semibold text-slate-900">
                                     {(() => {
                                         const selectedUser = userChats.find(chat => chat.user_id === selectedUserId);
                                         const userName = `${selectedUser?.profiles?.first_name || ''} ${selectedUser?.profiles?.last_name || ''}`.trim();
                                         return userName || 'Unknown User';
                                     })()}
                                 </h3>
-                                <p className="text-slate-400 text-sm">
+                                <p className="text-slate-600 text-sm">
                                     {userChats.find(chat => chat.user_id === selectedUserId)?.profiles?.company_name}
                                 </p>
                             </div>
@@ -474,15 +474,15 @@ const AdminSupportPage = ({ session }) => {
                                         <div
                                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                                                 message.sender === 'admin'
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-slate-700 text-slate-100'
+                                                    ? 'bg-emerald-500 text-white'
+                                                    : 'bg-slate-100 text-slate-900'
                                             }`}
                                         >
                                             <p className="text-sm">{message.message}</p>
 
                                             {/* Attachment */}
                                             {message.attachment_url && (
-                                                <div className="mt-2 p-2 bg-black/20 rounded flex items-center gap-2">
+                                                <div className="mt-2 p-2 bg-slate-200/50 rounded flex items-center gap-2">
                                                     {getFileIcon(message.attachment_name)}
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs truncate">{message.attachment_name}</p>
@@ -519,20 +519,20 @@ const AdminSupportPage = ({ session }) => {
                             </div>
 
                             {/* Reply Area */}
-                            <div className="border-t border-slate-700 p-4">
+                            <div className="border-t border-slate-200 p-4">
                                 {/* Selected File Preview */}
                                 {selectedFile && (
-                                    <div className="mb-3 p-3 bg-slate-700 rounded-lg flex items-center gap-3">
+                                    <div className="mb-3 p-3 bg-slate-100 rounded-lg flex items-center gap-3">
                                         {getFileIcon(selectedFile.name)}
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-white truncate">{selectedFile.name}</p>
-                                            <p className="text-xs text-slate-400">
+                                            <p className="text-sm text-slate-900 truncate">{selectedFile.name}</p>
+                                            <p className="text-xs text-slate-600">
                                                 {formatFileSize(selectedFile.size)}
                                             </p>
                                         </div>
                                         <button
                                             onClick={removeSelectedFile}
-                                            className="text-slate-400 hover:text-white"
+                                            className="text-slate-500 hover:text-slate-700"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -546,12 +546,12 @@ const AdminSupportPage = ({ session }) => {
                                             onChange={(e) => setNewReply(e.target.value)}
                                             onKeyPress={handleKeyPress}
                                             placeholder="Type your reply..."
-                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                                            className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
                                             rows="2"
                                             maxLength={MAX_MESSAGE_LENGTH}
                                             disabled={isSending}
                                         />
-                                        <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                                        <div className="absolute bottom-2 right-2 text-xs text-slate-500">
                                             {newReply.length}/{MAX_MESSAGE_LENGTH}
                                         </div>
                                     </div>
@@ -559,7 +559,7 @@ const AdminSupportPage = ({ session }) => {
                                     {/* File Upload Button */}
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-300 hover:text-white transition-colors"
+                                        className="p-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-slate-600 hover:text-slate-800 transition-colors"
                                         title="Attach file"
                                         disabled={isSending}
                                     >
@@ -570,7 +570,7 @@ const AdminSupportPage = ({ session }) => {
                                     <button
                                         onClick={sendReply}
                                         disabled={isSending || (!newReply.trim() && !selectedFile)}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors"
+                                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors"
                                     >
                                         {isSending ? (
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -595,7 +595,7 @@ const AdminSupportPage = ({ session }) => {
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
                                 <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                                <p className="text-slate-400 text-lg">Select a user to view conversation</p>
+                                <p className="text-slate-600 text-lg">Select a user to view conversation</p>
                                 <p className="text-slate-500 text-sm mt-2">
                                     Choose a user from the list to start managing their support messages
                                 </p>

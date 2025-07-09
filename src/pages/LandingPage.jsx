@@ -287,7 +287,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="relative">
-              <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Users className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">1. Add Your Staff</h3>

@@ -314,8 +314,8 @@ const SupportPage = ({ session, supportUnread }) => {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                    <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-400">Please log in to access support</p>
+                    <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-600">Please log in to access support</p>
                 </div>
             </div>
         );
@@ -325,28 +325,28 @@ const SupportPage = ({ session, supportUnread }) => {
         <div className="max-w-4xl mx-auto p-6">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <MessageSquare className="w-8 h-8 text-sky-400" />
-                <h1 className="text-3xl font-bold text-white">Support</h1>
+                <MessageSquare className="w-8 h-8 text-emerald-600" />
+                <h1 className="text-3xl font-bold text-slate-900">Support</h1>
                 {unreadCount > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
                         {unreadCount}
                     </span>
                 )}
             </div>
 
             {/* Chat Container */}
-            <div className="bg-slate-800 rounded-lg border border-slate-700 flex flex-col h-[600px]">
+            <div className="bg-white rounded-xl border border-slate-200 flex flex-col h-[600px] shadow-sm">
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-400"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="flex items-center justify-center h-full text-center">
                             <div>
                                 <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                                <p className="text-slate-400 text-lg">No messages yet</p>
+                                <p className="text-slate-600 text-lg">No messages yet</p>
                                 <p className="text-slate-500 text-sm mt-2">
                                     Start a conversation by sending a message below
                                 </p>
@@ -361,8 +361,8 @@ const SupportPage = ({ session, supportUnread }) => {
                                 <div
                                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                                         message.sender === 'user'
-                                            ? 'bg-sky-600 text-white'
-                                            : 'bg-slate-700 text-slate-100'
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-slate-100 text-slate-900'
                                     }`}
                                 >
                                     {/* Message Text */}
@@ -370,7 +370,7 @@ const SupportPage = ({ session, supportUnread }) => {
 
                                     {/* Attachment */}
                                     {message.attachment_url && (
-                                        <div className="mt-2 p-2 bg-black/20 rounded flex items-center gap-2">
+                                        <div className="mt-2 p-2 bg-slate-200 rounded flex items-center gap-2">
                                             {getFileIcon(message.attachment_name)}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs truncate">{message.attachment_name}</p>
@@ -411,20 +411,20 @@ const SupportPage = ({ session, supportUnread }) => {
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t border-slate-700 p-4">
+                <div className="border-t border-slate-200 p-4">
                     {/* Selected File Preview */}
                     {selectedFile && (
-                        <div className="mb-3 p-3 bg-slate-700 rounded-lg flex items-center gap-3">
+                        <div className="mb-3 p-3 bg-slate-100 rounded-lg flex items-center gap-3">
                             {getFileIcon(selectedFile.name)}
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm text-white truncate">{selectedFile.name}</p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-sm text-slate-900 truncate">{selectedFile.name}</p>
+                                <p className="text-xs text-slate-600">
                                     {formatFileSize(selectedFile.size)}
                                 </p>
                             </div>
                             <button
                                 onClick={removeSelectedFile}
-                                className="text-slate-400 hover:text-white"
+                                className="text-slate-500 hover:text-slate-700"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -439,12 +439,12 @@ const SupportPage = ({ session, supportUnread }) => {
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Type your message..."
-                                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
                                 rows="2"
                                 maxLength={MAX_MESSAGE_LENGTH}
                                 disabled={isSending}
                             />
-                            <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                            <div className="absolute bottom-2 right-2 text-xs text-slate-500">
                                 {newMessage.length}/{MAX_MESSAGE_LENGTH}
                             </div>
                         </div>
@@ -452,7 +452,7 @@ const SupportPage = ({ session, supportUnread }) => {
                         {/* File Upload Button */}
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="p-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-300 hover:text-white transition-colors"
+                            className="p-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-600 hover:text-slate-900 transition-colors"
                             title="Attach file"
                             disabled={isSending}
                         >
@@ -463,7 +463,7 @@ const SupportPage = ({ session, supportUnread }) => {
                         <button
                             onClick={sendMessage}
                             disabled={isSending || (!newMessage.trim() && !selectedFile)}
-                            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-2 transition-colors shadow-sm"
                         >
                             {isSending ? (
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -484,7 +484,7 @@ const SupportPage = ({ session, supportUnread }) => {
                     />
 
                     {/* Help Text */}
-                    <p className="text-xs text-slate-400 mt-2">
+                    <p className="text-xs text-slate-500 mt-2">
                         Max file size: {formatFileSize(MAX_FILE_SIZE)} • 
                         Supported formats: Images, PDF, Word, Text files
                     </p>

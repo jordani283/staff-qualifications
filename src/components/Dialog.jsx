@@ -17,16 +17,16 @@ export default function Dialog({ id, title, children, onClose }) {
             }}
         >
             <div 
-                className="dialog-content bg-slate-800 rounded-lg shadow-xl w-full max-w-md border border-slate-700" 
+                className="dialog-content bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200" 
                 onClick={e => e.stopPropagation()}
                 style={{
                     maxHeight: 'calc(100vh - 160px)',
                     overflowY: 'auto'
                 }}
             >
-                <div className="flex justify-between items-center p-4 border-b border-slate-700">
-                    <h2 className="text-lg font-bold text-white">{title}</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                <div className="flex justify-between items-center p-6 border-b border-slate-200">
+                    <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
                         <X className="h-5 w-5" />
                     </button>
                 </div>

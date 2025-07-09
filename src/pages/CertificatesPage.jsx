@@ -108,8 +108,8 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
         <>
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Certificate Management</h1>
-                    <p className="text-slate-400">Create and manage reusable certificate types.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Certificate Management</h1>
+                    <p className="text-slate-600">Create and manage reusable certificate types.</p>
                 </div>
                 <button 
                     onClick={() => handleRestrictedAction(
@@ -117,17 +117,17 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
                         handleShowUpgradePrompt
                     )}
                     disabled={!canCreate}
-                    className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    className={`${getButtonClass('bg-emerald-600 hover:bg-emerald-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
                     title={canCreate ? 'Create a new certificate template' : 'Upgrade to create certificates'}
                 >
                    <Plus className="mr-2 h-4 w-4" /> 
                    {getButtonText('Add Certificate', 'Upgrade to Add')}
                 </button>
             </div>
-            <div id="templates-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
+            <div id="templates-table-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? <Spinner /> : (
                     templates.length === 0 ? (
-                        <p className="p-6 text-center text-slate-400">
+                        <p className="p-6 text-center text-slate-500">
                             {canCreate 
                                 ? "No certificates created yet. Click 'Add Certificate' to begin."
                                 : "No certificates found. Upgrade your plan to create and manage certificate templates."
@@ -135,21 +135,21 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
                         </p>
                     ) : (
                         <table className="w-full text-left">
-                             <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
+                             <thead className="bg-slate-50 text-xs text-slate-600 uppercase font-medium">
                                 <tr>
                                     <th className="p-4">Certificate Name</th><th className="p-4">Validity (Months)</th><th className="p-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {templates.map(template => (
-                                     <tr key={template.id} className="border-t border-slate-700">
-                                        <td className="p-4 font-medium text-white">{template.name}</td>
-                                        <td className="p-4 text-slate-300">{template.validity_period_months}</td>
+                                     <tr key={template.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                                        <td className="p-4 font-medium text-slate-900">{template.name}</td>
+                                        <td className="p-4 text-slate-700">{template.validity_period_months}</td>
                                         <td className="p-4 text-right">
                                             <button 
                                                 onClick={() => confirmDeleteTemplate(template)} 
                                                 disabled={!canDelete}
-                                                className={`${canDelete ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}`}
+                                                className={`${canDelete ? 'text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded' : 'text-gray-400 cursor-not-allowed'}`}
                                                 title={canDelete ? 'Delete certificate template' : 'Upgrade to delete certificates'}
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -166,16 +166,16 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
                 <Dialog id="add-template-dialog" title="Add New Certificate" onClose={() => setShowDialog(false)}>
                     <form id="add-template-form" onSubmit={handleAddTemplate} className="space-y-4">
                         <div>
-                            <label htmlFor="template_name" className="block text-sm font-medium text-slate-300 mb-1">Certificate Name</label>
-                            <input id="template_name" name="template_name" type="text" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="template_name" className="block text-sm font-medium text-slate-700 mb-2">Certificate Name</label>
+                            <input id="template_name" name="template_name" type="text" required placeholder="Enter certificate name" className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div>
-                            <label htmlFor="validity" className="block text-sm font-medium text-slate-300 mb-1">Validity Period (Months)</label>
-                            <input id="validity" name="validity" type="number" min="1" max="120" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="validity" className="block text-sm font-medium text-slate-700 mb-2">Validity Period (Months)</label>
+                            <input id="validity" name="validity" type="number" min="1" max="120" required placeholder="e.g., 12" className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div className="flex justify-end pt-4 gap-3">
-                            <button type="button" onClick={() => setShowDialog(false)} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
-                            <button type="submit" form="add-template-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Add Certificate</button>
+                            <button type="button" onClick={() => setShowDialog(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
+                            <button type="submit" form="add-template-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm">Add Certificate</button>
                         </div>
                     </form>
                 </Dialog>
@@ -183,22 +183,22 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
             {showDeleteDialog && templateToDelete && canDelete && (
                 <Dialog id="delete-template-dialog" title="Confirm Deletion" onClose={() => setShowDeleteDialog(false)}>
                     <div className="space-y-4">
-                        <p className="text-slate-300">
-                            Are you sure you want to delete the certificate template <span className="font-semibold text-white">"{templateToDelete.name}"</span>?
+                        <p className="text-slate-600">
+                            Are you sure you want to delete the certificate template <span className="font-semibold text-slate-900">"{templateToDelete.name}"</span>?
                         </p>
-                        <p className="text-red-400 text-sm">
+                        <p className="text-red-600 text-sm">
                             This action cannot be undone and will also delete all assigned certifications of this type.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowDeleteDialog(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDeleteTemplate} 
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Delete Certificate
                             </button>
@@ -209,13 +209,13 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
             {showUpgradeModal && (
                 <Dialog id="upgrade-prompt-dialog" title="Upgrade Required" onClose={() => setShowUpgradeModal(false)}>
                     <div className="space-y-4">
-                        <p className="text-slate-300">
+                        <p className="text-slate-600">
                             Your trial has expired. Upgrade your plan to create and manage certificate templates.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowUpgradeModal(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Close
                             </button>
@@ -225,7 +225,7 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
                                     // TODO: Navigate to subscription page in Phase 2
                                     showToast('Redirecting to subscription page...', 'success');
                                 }} 
-                                className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Upgrade Now
                             </button>

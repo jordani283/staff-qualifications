@@ -137,26 +137,26 @@ export default function ActivitiesPage({ user }) {
     // Get action icon
     const getActionIcon = (actionType) => {
         switch (actionType) {
-            case 'CREATE': return <FileText className="w-4 h-4 text-green-400" />;
-            case 'UPLOAD': return <Upload className="w-4 h-4 text-blue-400" />;
-            case 'EDIT': return <Edit className="w-4 h-4 text-amber-400" />;
-            case 'DELETE': return <Trash2 className="w-4 h-4 text-red-400" />;
-            case 'COMMENT': return <MessageCircle className="w-4 h-4 text-purple-400" />;
-            case 'RENEW': return <RefreshCw className="w-4 h-4 text-sky-400" />;
-            default: return <Clock className="w-4 h-4 text-slate-400" />;
+            case 'CREATE': return <FileText className="w-4 h-4 text-emerald-600" />;
+            case 'UPLOAD': return <Upload className="w-4 h-4 text-blue-600" />;
+            case 'EDIT': return <Edit className="w-4 h-4 text-amber-600" />;
+            case 'DELETE': return <Trash2 className="w-4 h-4 text-red-600" />;
+            case 'COMMENT': return <MessageCircle className="w-4 h-4 text-purple-600" />;
+            case 'RENEW': return <RefreshCw className="w-4 h-4 text-emerald-600" />;
+            default: return <Clock className="w-4 h-4 text-slate-600" />;
         }
     };
 
     // Get action color class
     const getActionColorClass = (actionType) => {
         switch (actionType) {
-            case 'CREATE': return 'text-green-400 bg-green-400/10';
-            case 'UPLOAD': return 'text-blue-400 bg-blue-400/10';
-            case 'EDIT': return 'text-amber-400 bg-amber-400/10';
-            case 'DELETE': return 'text-red-400 bg-red-400/10';
-            case 'COMMENT': return 'text-purple-400 bg-purple-400/10';
-            case 'RENEW': return 'text-sky-400 bg-sky-400/10';
-            default: return 'text-slate-400 bg-slate-400/10';
+            case 'CREATE': return 'text-emerald-600 bg-emerald-50';
+            case 'UPLOAD': return 'text-blue-600 bg-blue-50';
+            case 'EDIT': return 'text-amber-600 bg-amber-50';
+            case 'DELETE': return 'text-red-600 bg-red-50';
+            case 'COMMENT': return 'text-purple-600 bg-purple-50';
+            case 'RENEW': return 'text-emerald-600 bg-emerald-50';
+            default: return 'text-slate-600 bg-slate-50';
         }
     };
 
@@ -178,36 +178,36 @@ export default function ActivitiesPage({ user }) {
         <>
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Activity Log</h1>
-                    <p className="text-slate-400">Track all certification activities across your organization.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Activity Log</h1>
+                    <p className="text-slate-600">Track all certification activities across your organization.</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-4 h-4" />
                         <input
                             type="text"
                             placeholder="Search activities..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-md text-white placeholder-slate-400 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full sm:w-64"
+                            className="pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors w-full sm:w-64"
                         />
                     </div>
                     
                     {/* Filter Toggle */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-colors font-semibold ${
                             hasActiveFilters || showFilters
-                                ? 'bg-sky-600 text-white'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
                         }`}
                     >
                         <Filter className="w-4 h-4" />
                         Filters
                         {hasActiveFilters && (
-                            <span className="bg-white text-sky-600 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                            <span className="bg-white text-emerald-600 text-xs px-1.5 py-0.5 rounded-full font-semibold">
                                 {[selectedStaff, dateFrom, dateTo, searchTerm.trim()].filter(Boolean).length}
                             </span>
                         )}
@@ -217,15 +217,15 @@ export default function ActivitiesPage({ user }) {
 
             {/* Filter Panel */}
             {showFilters && (
-                <div className="bg-slate-800/50 rounded-lg p-6 mb-6 border border-slate-700">
+                <div className="bg-white rounded-xl p-6 mb-6 border border-slate-200 shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Staff Filter */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Staff Member</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Staff Member</label>
                             <select
                                 value={selectedStaff}
                                 onChange={(e) => setSelectedStaff(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                             >
                                 <option value="">All Staff</option>
                                 {staffMembers.map(staff => (
@@ -238,35 +238,35 @@ export default function ActivitiesPage({ user }) {
 
                         {/* Date From */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">From Date</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">From Date</label>
                             <input
                                 type="date"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                             />
                         </div>
 
                         {/* Date To */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">To Date</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">To Date</label>
                             <input
                                 type="date"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-md p-2.5 text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                             />
                         </div>
                     </div>
 
                     {hasActiveFilters && (
-                        <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-                            <span className="text-sm text-slate-400">
+                        <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                            <span className="text-sm text-slate-600">
                                 Showing {filteredActivities.length} of {activities.length} activities
                             </span>
                             <button
                                 onClick={clearFilters}
-                                className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                                className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
                             >
                                 Clear all filters
                             </button>
@@ -276,15 +276,15 @@ export default function ActivitiesPage({ user }) {
             )}
 
             {/* Activities List */}
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 {loading ? (
                     <div className="p-12">
                         <Spinner />
                     </div>
                 ) : filteredActivities.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400">
+                    <div className="text-center py-12 text-slate-500">
                         <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg font-medium mb-2">
+                        <p className="text-lg font-medium mb-2 text-slate-700">
                             {hasActiveFilters ? 'No activities match your filters' : 'No activities found'}
                         </p>
                         <p className="text-sm">
@@ -296,16 +296,16 @@ export default function ActivitiesPage({ user }) {
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
-                                className="mt-4 text-sky-400 hover:text-sky-300 font-medium"
+                                className="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
                             >
                                 Clear filters
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-700">
+                    <div className="divide-y divide-slate-100">
                         {filteredActivities.map((activity, index) => (
-                            <div key={activity.id} className="p-6 hover:bg-slate-700/30 transition-colors">
+                            <div key={activity.id} className="p-6 hover:bg-slate-50 transition-colors">
                                 <div className="flex items-start gap-4">
                                     {/* Action Icon */}
                                     <div className="flex-shrink-0 mt-1">
@@ -320,12 +320,12 @@ export default function ActivitiesPage({ user }) {
                                                     {activity.action_type}
                                                 </span>
                                                 {activity.field && (
-                                                    <span className="text-xs bg-slate-600 text-slate-300 px-2 py-1 rounded">
+                                                    <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">
                                                         {activity.field}
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-4 text-sm text-slate-400">
+                                            <div className="flex items-center gap-4 text-sm text-slate-500">
                                                 <div className="flex items-center gap-1">
                                                     <Calendar className="w-3 h-3" />
                                                     {formatDate(activity.created_at)}
@@ -339,23 +339,23 @@ export default function ActivitiesPage({ user }) {
 
                                         {/* Activity Description */}
                                         <div className="mb-2">
-                                            <p className="text-white font-medium">
+                                            <p className="text-slate-900 font-medium">
                                                 {activity.staff_name} • {activity.certification_name}
                                             </p>
                                         </div>
 
                                         {/* Field Changes */}
                                         {activity.old_value && activity.new_value && (
-                                            <div className="text-sm text-slate-300 mb-2">
-                                                <span className="text-red-400">{activity.old_value}</span>
-                                                <span className="text-slate-500 mx-2">→</span>
-                                                <span className="text-green-400">{activity.new_value}</span>
+                                            <div className="text-sm text-slate-600 mb-2">
+                                                <span className="text-red-600">{activity.old_value}</span>
+                                                <span className="text-slate-400 mx-2">→</span>
+                                                <span className="text-emerald-600">{activity.new_value}</span>
                                             </div>
                                         )}
 
                                         {/* Note */}
                                         {activity.note && (
-                                            <p className="text-sm text-slate-400 italic">
+                                            <p className="text-sm text-slate-500 italic">
                                                 {activity.note}
                                             </p>
                                         )}

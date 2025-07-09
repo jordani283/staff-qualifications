@@ -4,12 +4,12 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
     const getCellStyle = (status) => {
         switch (status) {
             case 'active':
-                return 'bg-green-500/20 text-green-400 border border-green-500/30';
+                return 'bg-emerald-100 text-emerald-600 border border-emerald-300';
             case 'expired':
-                return 'bg-red-500/20 text-red-400 border border-red-500/30';
+                return 'bg-red-100 text-red-600 border border-red-300';
             case 'missing':
             default:
-                return 'bg-slate-700/50 text-slate-500 border border-slate-600/30';
+                return 'bg-slate-100 text-slate-600 border border-slate-300';
         }
     };
 
@@ -38,13 +38,13 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
     };
 
     return (
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                    <thead className="bg-slate-800">
+                    <thead className="bg-slate-50">
                         <tr>
                             {/* Top-left corner cell */}
-                            <th className="p-2 pb-4 text-xs text-slate-400 uppercase font-medium border-r border-slate-700 sticky left-0 bg-slate-800 z-10 min-w-[200px] h-40 align-bottom">
+                            <th className="p-2 pb-4 text-xs text-slate-600 uppercase font-medium border-r border-slate-200 sticky left-0 bg-slate-50 z-10 min-w-[200px] h-40 align-bottom">
                                 <div className="flex items-end h-full">
                                     Staff / Certificates
                                 </div>
@@ -54,7 +54,7 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                             {templateData.map(template => (
                                 <th 
                                     key={template.id} 
-                                    className="p-2 text-sm text-slate-400 uppercase font-medium text-center border-l border-slate-700 min-w-[120px] relative"
+                                    className="p-2 text-sm text-slate-600 uppercase font-medium text-center border-l border-slate-200 min-w-[120px] relative"
                                     title={template.name}
                                 >
                                     <div className="h-36 flex items-center justify-center pb-4">
@@ -73,12 +73,12 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                         {staffData.map((staff, staffIndex) => (
                             <tr 
                                 key={staff.id} 
-                                className={`border-t border-slate-700 hover:bg-slate-700/20 transition-colors ${
-                                    staffIndex % 2 === 0 ? 'bg-slate-900/20' : 'bg-slate-800/20'
+                                className={`border-t border-slate-100 hover:bg-slate-50 transition-colors ${
+                                    staffIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
                                 }`}
                             >
                                 {/* Staff name cell - sticky left column */}
-                                <td className="p-4 font-medium text-white border-r border-slate-700 sticky left-0 bg-slate-800/90 z-10 min-w-[200px]">
+                                <td className="p-4 font-medium text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10 min-w-[200px]">
                                     <div className="truncate" title={staff.full_name}>
                                         {staff.full_name}
                                     </div>
@@ -90,7 +90,7 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                                     return (
                                         <td 
                                             key={template.id} 
-                                            className="p-2 text-center border-l border-slate-700"
+                                            className="p-2 text-center border-l border-slate-100"
                                         >
                                             <div 
                                                 className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors cursor-default`}
@@ -108,9 +108,9 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
             </div>
             
             {/* Summary row */}
-            <div className="border-t border-slate-700 bg-slate-800/30 p-4">
-                <div className="text-sm text-slate-400">
-                    <span className="font-medium text-slate-300">Summary:</span> 
+            <div className="border-t border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm text-slate-600">
+                    <span className="font-medium text-slate-700">Summary:</span> 
                     {' '}{staffData.length} staff member{staffData.length !== 1 ? 's' : ''} × {templateData.length} certificate{templateData.length !== 1 ? 's' : ''} 
                     {' '}= {staffData.length * templateData.length} total certification requirements
                 </div>

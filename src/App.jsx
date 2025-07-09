@@ -374,7 +374,7 @@ export default function App() {
 
 // --- Layout Components ---
 function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
-    const navItemClass = (pageName) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${page === pageName ? 'bg-sky-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`;
+    const navItemClass = (pageName) => `flex items-center px-4 py-2.5 rounded-lg transition-colors ${page === pageName ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`;
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -393,11 +393,11 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
     };
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden">
-            <nav className="bg-slate-950/70 border-r border-slate-800 w-64 p-4 flex-col flex-shrink-0 hidden md:flex">
+        <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-blue-50 to-slate-100">
+            <nav className="bg-white/80 backdrop-blur-sm border-r border-slate-200 w-64 p-4 flex-col flex-shrink-0 hidden md:flex shadow-lg">
                 <div className="flex items-center gap-3 px-2 mb-8">
-                    <ShieldCheck className="text-sky-400 h-8 w-8" />
-                    <span className="font-bold text-lg text-white">TeamCertify</span>
+                    <ShieldCheck className="text-emerald-600 h-8 w-8" />
+                    <span className="font-bold text-lg text-slate-900">TeamCertify</span>
                 </div>
                 <div className="flex-grow space-y-2">
                     <a href="#" className={navItemClass('dashboard')} onClick={() => setPage('dashboard')}><LayoutDashboard className="mr-3 h-5 w-5" />Dashboard</a>
@@ -416,15 +416,15 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
                     </a>
                     <a href="#" className={navItemClass('subscription')} onClick={() => setPage('subscription')}><CreditCard className="mr-3 h-5 w-5" />Subscription</a>
                 </div>
-                <div className="text-sm">
-                    <div className="p-2 text-slate-300 font-medium">{profile?.company_name || '...'}</div>
+                <div className="text-sm border-t border-slate-200 pt-4 mt-4">
+                    <div className="p-2 text-slate-700 font-medium">{profile?.company_name || '...'}</div>
                     <div className="p-2 text-slate-500 truncate">{user?.email || '...'}</div>
-                    <button onClick={handleLogout} className="flex w-full items-center px-2 py-2.5 rounded-lg text-slate-400 hover:bg-red-900/20 hover:text-red-400 transition-colors">
+                    <button onClick={handleLogout} className="flex w-full items-center px-2 py-2.5 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
                         <LogOut className="mr-3 h-5 w-5" />Logout
                     </button>
                 </div>
             </nav>
-            <main id="main-content" className="flex-1 bg-slate-900 p-4 sm:p-6 md:p-8 overflow-y-auto">
+            <main id="main-content" className="flex-1 bg-transparent p-4 sm:p-6 md:p-8 overflow-y-auto">
                 <div className="page-enter">{children}</div>
             </main>
         </div>

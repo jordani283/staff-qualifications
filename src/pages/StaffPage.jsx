@@ -189,8 +189,8 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
         <>
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Staff Management</h1>
-                    <p className="text-slate-400">View, add, and manage your team members.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Staff Management</h1>
+                    <p className="text-slate-600">View, add, and manage your team members.</p>
                 </div>
                 <button 
                     onClick={() => handleRestrictedAction(
@@ -198,17 +198,17 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                         handleShowUpgradePrompt
                     )}
                     disabled={!canCreate}
-                    className={`${getButtonClass('bg-sky-600 hover:bg-sky-700', 'bg-gray-500 cursor-not-allowed')} text-white font-bold py-2 px-4 rounded-md transition-colors flex items-center`}
+                    className={`${getButtonClass('bg-blue-600 hover:bg-blue-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
                     title={canCreate ? 'Add a new staff member' : 'Upgrade to add staff members'}
                 >
                    <Plus className="mr-2 h-4 w-4" /> 
                    {getButtonText('Add Staff', 'Upgrade to Add Staff')}
                 </button>
             </div>
-            <div id="staff-table-container" className="bg-slate-800/50 rounded-lg overflow-hidden border border-slate-700">
+            <div id="staff-table-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? <Spinner /> : (
                     staffWithCerts.length === 0 ? (
-                        <p className="p-6 text-center text-slate-400">
+                        <p className="p-6 text-center text-slate-500">
                             {canCreate 
                                 ? "No staff members added yet. Click 'Add Staff' to begin."
                                 : "No staff members found. Upgrade your plan to add and manage staff members."
@@ -216,7 +216,7 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                         </p>
                     ) : (
                         <table className="w-full text-left">
-                            <thead className="bg-slate-800 text-xs text-slate-400 uppercase">
+                            <thead className="bg-slate-50 text-xs text-slate-600 uppercase font-medium">
                                 <tr>
                                     <th className="p-4">Full Name</th>
                                     <th className="p-4">Job Title</th>
@@ -229,13 +229,13 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                             </thead>
                             <tbody>
                             {staffWithCerts.map(s => (
-                                <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
-                                    <td className="p-4 font-medium text-white cursor-pointer hover:text-sky-400" onClick={() => setPage('staffDetail', { staffMember: s })} title="Click to view details">{s.full_name}</td>
-                                    <td className="p-4 text-slate-300 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.job_title || '-'}</td>
-                                    <td className="p-4 text-slate-300 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.email || '-'}</td>
-                                    <td className="p-4 text-center font-medium text-green-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.green}</td>
-                                    <td className="p-4 text-center font-medium text-amber-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.amber}</td>
-                                    <td className="p-4 text-center font-medium text-red-400 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.red}</td>
+                                <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <td className="p-4 font-medium text-slate-900 cursor-pointer hover:text-emerald-600" onClick={() => setPage('staffDetail', { staffMember: s })} title="Click to view details">{s.full_name}</td>
+                                    <td className="p-4 text-slate-700 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.job_title || '-'}</td>
+                                    <td className="p-4 text-slate-700 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.email || '-'}</td>
+                                    <td className="p-4 text-center font-medium text-emerald-600 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.green}</td>
+                                    <td className="p-4 text-center font-medium text-amber-600 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.amber}</td>
+                                    <td className="p-4 text-center font-medium text-red-600 cursor-pointer" onClick={() => setPage('staffDetail', { staffMember: s })}>{s.certs.red}</td>
                                     <td className="p-4 text-center">
                                         <button 
                                             onClick={(e) => {
@@ -243,7 +243,7 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                                                 confirmDeleteStaff(s);
                                             }}
                                             disabled={!canDelete}
-                                            className={`${canDelete ? 'text-red-400 hover:text-red-300 hover:bg-red-500/20' : 'text-gray-500 cursor-not-allowed'} p-1 rounded transition-colors`}
+                                            className={`${canDelete ? 'text-red-600 hover:text-red-700 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'} p-1 rounded transition-colors`}
                                             title={canDelete ? `Delete ${s.full_name}` : 'Upgrade to delete staff'}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -260,20 +260,20 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                  <Dialog id="add-staff-dialog" title="Add New Staff Member" onClose={() => setShowDialog(false)}>
                     <form id="add-staff-form" onSubmit={handleAddStaff} className="space-y-4">
                         <div>
-                            <label htmlFor="full_name" className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
-                            <input id="full_name" name="full_name" type="text" required className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                            <input id="full_name" name="full_name" type="text" required placeholder="Enter full name" className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div>
-                            <label htmlFor="email_staff" className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-                            <input id="email_staff" name="email" type="email" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="email_staff" className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                            <input id="email_staff" name="email" type="email" placeholder="Enter email address" className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div>
-                            <label htmlFor="job_title" className="block text-sm font-medium text-slate-300 mb-1">Job Title</label>
-                            <input id="job_title" name="job_title" type="text" className="w-full bg-slate-700 border-slate-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500" />
+                            <label htmlFor="job_title" className="block text-sm font-medium text-slate-700 mb-2">Job Title</label>
+                            <input id="job_title" name="job_title" type="text" placeholder="Enter job title" className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" />
                         </div>
                         <div className="flex justify-end pt-4 gap-3">
-                            <button type="button" onClick={() => setShowDialog(false)} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
-                            <button type="submit" form="add-staff-form" className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">Add Staff</button>
+                            <button type="button" onClick={() => setShowDialog(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
+                            <button type="submit" form="add-staff-form" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm">Add Staff</button>
                         </div>
                     </form>
                  </Dialog>
@@ -281,13 +281,13 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
             {showUpgradeModal && (
                 <Dialog id="upgrade-prompt-dialog" title="Upgrade Required" onClose={() => setShowUpgradeModal(false)}>
                     <div className="space-y-4">
-                        <p className="text-slate-300">
+                        <p className="text-slate-600">
                             Your trial has expired. Upgrade your plan to add and manage staff members.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
                             <button 
                                 onClick={() => setShowUpgradeModal(false)} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Close
                             </button>
@@ -296,7 +296,7 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                                     setShowUpgradeModal(false);
                                     setPage('subscription');
                                 }} 
-                                className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Upgrade Now
                             </button>
@@ -316,15 +316,15 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                     }}
                 >
                     <div className="space-y-4">
-                        <p className="text-slate-300">
-                            Are you sure you want to permanently delete <span className="font-semibold text-white">{staffToDelete.full_name}</span>?
+                        <p className="text-slate-600">
+                            Are you sure you want to permanently delete <span className="font-semibold text-slate-900">{staffToDelete.full_name}</span>?
                         </p>
                         {(staffToDelete.certs.green + staffToDelete.certs.amber + staffToDelete.certs.red) > 0 && (
-                            <p className="text-red-400 font-medium">
+                            <p className="text-red-600 font-medium">
                                 This will also permanently delete {staffToDelete.certs.green + staffToDelete.certs.amber + staffToDelete.certs.red} associated certifications and their audit records.
                             </p>
                         )}
-                        <p className="text-red-400 text-sm font-semibold">
+                        <p className="text-red-600 text-sm font-semibold">
                             This action cannot be undone.
                         </p>
                         <div className="flex justify-end pt-4 gap-3">
@@ -333,13 +333,13 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                                     setShowDeleteDialog(false);
                                     setStaffToDelete(null);
                                 }} 
-                                className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDeleteStaff} 
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 Delete Staff Member
                             </button>

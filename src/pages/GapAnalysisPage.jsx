@@ -218,18 +218,18 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
         return (
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Gap Analysis</h1>
-                    <p className="text-slate-400">Track certification compliance across your team at a glance.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Gap Analysis</h1>
+                    <p className="text-slate-600">Track certification compliance across your team at a glance.</p>
                 </div>
                 
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-12">
+                <div className="bg-white rounded-xl border border-slate-200 p-12 shadow-sm">
                     <div className="text-center space-y-4">
-                        <div className="mx-auto w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center">
-                            <FileSpreadsheet className="w-8 h-8 text-slate-400" />
+                        <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                            <FileSpreadsheet className="w-8 h-8 text-slate-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">No Data Available</h3>
-                            <p className="text-slate-400 max-w-md mx-auto">
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">No Data Available</h3>
+                            <p className="text-slate-600 max-w-md mx-auto">
                                 To view gap analysis, you need both staff members and certificate templates. 
                                 Add staff and create certificate templates to get started.
                             </p>
@@ -237,13 +237,13 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                         <div className="flex justify-center space-x-4 pt-4">
                             <button
                                 onClick={() => setPage('staff')}
-                                className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                             >
                                 Manage Staff
                             </button>
                             <button
                                 onClick={() => setPage('certificates')}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                             >
                                 Manage Certificates
                             </button>
@@ -258,24 +258,24 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
         return (
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Gap Analysis</h1>
-                    <p className="text-slate-400">Track certification compliance across your team at a glance.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Gap Analysis</h1>
+                    <p className="text-slate-600">Track certification compliance across your team at a glance.</p>
                 </div>
                 
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-12">
+                <div className="bg-white rounded-xl border border-slate-200 p-12 shadow-sm">
                     <div className="text-center space-y-4">
-                        <div className="mx-auto w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center">
-                            <Users className="w-8 h-8 text-slate-400" />
+                        <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                            <Users className="w-8 h-8 text-slate-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">No Staff Members Found</h3>
-                            <p className="text-slate-400">
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">No Staff Members Found</h3>
+                            <p className="text-slate-600">
                                 Add staff members to see their certification status in the gap analysis.
                             </p>
                         </div>
                         <button
                             onClick={() => setPage('staff')}
-                            className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                         >
                             Add Staff Members
                         </button>
@@ -289,24 +289,24 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
         return (
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Gap Analysis</h1>
-                    <p className="text-slate-400">Track certification compliance across your team at a glance.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">Gap Analysis</h1>
+                    <p className="text-slate-600">Track certification compliance across your team at a glance.</p>
                 </div>
                 
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-12">
+                <div className="bg-white rounded-xl border border-slate-200 p-12 shadow-sm">
                     <div className="text-center space-y-4">
-                        <div className="mx-auto w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center">
-                            <FileSpreadsheet className="w-8 h-8 text-slate-400" />
+                        <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                            <FileSpreadsheet className="w-8 h-8 text-slate-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">No Certificate Templates Created</h3>
-                            <p className="text-slate-400">
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">No Certificate Templates Created</h3>
+                            <p className="text-slate-600">
                                 Create certificate templates to track compliance in the gap analysis.
                             </p>
                         </div>
                         <button
                             onClick={() => setPage('certificates')}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                         >
                             Create Certificate Templates
                         </button>
@@ -320,16 +320,16 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-white">Gap Analysis</h1>
-                <p className="text-slate-400">Track certification compliance across your team at a glance.</p>
+                <h1 className="text-3xl font-bold text-slate-900">Gap Analysis</h1>
+                <p className="text-slate-600">Track certification compliance across your team at a glance.</p>
             </div>
 
             {/* Filters */}
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Staff Selection Dropdown */}
                     <div className="relative" data-dropdown="staff">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
                             Staff Members ({selectedStaffIds.length} of {staffData.length} selected)
                         </label>
                         <button
@@ -337,7 +337,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                 setShowStaffDropdown(!showStaffDropdown);
                                 setShowCertDropdown(false); // Close the other dropdown
                             }}
-                            className="w-full flex items-center justify-between px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                            className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-colors"
                         >
                             <span>
                                 {selectedStaffIds.length === staffData.length 
@@ -351,19 +351,19 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                         </button>
                         
                         {showStaffDropdown && (
-                            <div className="absolute z-50 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-80 overflow-y-auto">
                                 {/* Select All / Deselect All */}
-                                <div className="p-2 border-b border-slate-600">
+                                <div className="p-2 border-b border-slate-200">
                                     <div className="flex gap-2">
                                         <button
                                             onClick={selectAllStaff}
-                                            className="text-xs px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded transition-colors"
+                                            className="text-xs px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
                                         >
                                             Select All
                                         </button>
                                         <button
                                             onClick={deselectAllStaff}
-                                            className="text-xs px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors"
+                                            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded transition-colors"
                                         >
                                             Deselect All
                                         </button>
@@ -375,14 +375,14 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                     <div
                                         key={staff.id}
                                         onClick={() => toggleStaffSelection(staff.id)}
-                                        className="flex items-center px-3 py-2 hover:bg-slate-600 cursor-pointer text-sm"
+                                        className="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm"
                                     >
-                                        <div className="flex items-center justify-center w-4 h-4 mr-3 border border-slate-500 rounded">
+                                        <div className="flex items-center justify-center w-4 h-4 mr-3 border border-slate-400 rounded">
                                             {selectedStaffIds.includes(staff.id) && (
-                                                <Check className="w-3 h-3 text-sky-400" />
+                                                <Check className="w-3 h-3 text-emerald-600" />
                                             )}
                                         </div>
-                                        <span className="text-white">{staff.full_name}</span>
+                                        <span className="text-slate-900">{staff.full_name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -391,7 +391,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                     
                     {/* Certificate Selection Dropdown */}
                     <div className="relative" data-dropdown="cert">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
                             Certificates ({selectedTemplateIds.length} of {templateData.length} selected)
                         </label>
                         <button
@@ -399,7 +399,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                 setShowCertDropdown(!showCertDropdown);
                                 setShowStaffDropdown(false); // Close the other dropdown
                             }}
-                            className="w-full flex items-center justify-between px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                            className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-colors"
                         >
                             <span>
                                 {selectedTemplateIds.length === templateData.length 
@@ -413,19 +413,19 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                         </button>
                         
                         {showCertDropdown && (
-                            <div className="absolute z-50 w-full mt-1 bg-slate-700 border border-slate-600 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-80 overflow-y-auto">
                                 {/* Select All / Deselect All */}
-                                <div className="p-2 border-b border-slate-600">
+                                <div className="p-2 border-b border-slate-200">
                                     <div className="flex gap-2">
                                         <button
                                             onClick={selectAllTemplates}
-                                            className="text-xs px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded transition-colors"
+                                            className="text-xs px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
                                         >
                                             Select All
                                         </button>
                                         <button
                                             onClick={deselectAllTemplates}
-                                            className="text-xs px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors"
+                                            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded transition-colors"
                                         >
                                             Deselect All
                                         </button>
@@ -437,14 +437,14 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                     <div
                                         key={template.id}
                                         onClick={() => toggleTemplateSelection(template.id)}
-                                        className="flex items-center px-3 py-2 hover:bg-slate-600 cursor-pointer text-sm"
+                                        className="flex items-center px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm"
                                     >
-                                        <div className="flex items-center justify-center w-4 h-4 mr-3 border border-slate-500 rounded">
+                                        <div className="flex items-center justify-center w-4 h-4 mr-3 border border-slate-400 rounded">
                                             {selectedTemplateIds.includes(template.id) && (
-                                                <Check className="w-3 h-3 text-sky-400" />
+                                                <Check className="w-3 h-3 text-emerald-600" />
                                             )}
                                         </div>
-                                        <span className="text-white">{template.name}</span>
+                                        <span className="text-slate-900">{template.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -454,7 +454,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                 
                 {/* Summary and Clear Actions */}
                 <div className="mt-4 flex items-center justify-between">
-                    <div className="text-sm text-slate-400">
+                    <div className="text-sm text-slate-600">
                         Showing {filteredStaffData.length} staff × {filteredTemplateData.length} certificates
                     </div>
                     <div className="flex gap-2">
@@ -463,7 +463,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                 selectAllStaff();
                                 selectAllTemplates();
                             }}
-                            className="text-sm text-sky-400 hover:text-sky-300 transition-colors"
+                            className="text-sm text-emerald-600 hover:text-emerald-700 transition-colors font-semibold"
                         >
                             Select All
                         </button>
@@ -472,7 +472,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                                 deselectAllStaff();
                                 deselectAllTemplates();
                             }}
-                            className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                            className="text-sm text-red-600 hover:text-red-700 transition-colors font-semibold"
                         >
                             Clear All
                         </button>
@@ -482,15 +482,15 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
 
             {/* Gap Analysis Table */}
             {filteredStaffData.length === 0 ? (
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-8">
-                    <div className="text-center text-slate-400">
+                <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+                    <div className="text-center text-slate-500">
                         <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p>No staff members selected. Use the dropdown above to select staff members.</p>
                     </div>
                 </div>
             ) : filteredTemplateData.length === 0 ? (
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-8">
-                    <div className="text-center text-slate-400">
+                <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+                    <div className="text-center text-slate-500">
                         <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p>No certificates selected. Use the dropdown above to select certificates.</p>
                     </div>
@@ -504,20 +504,20 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
             )}
 
             {/* Legend */}
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-                <h3 className="text-sm font-medium text-slate-300 mb-3">Legend</h3>
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <h3 className="text-sm font-medium text-slate-700 mb-3">Legend</h3>
                 <div className="flex flex-wrap gap-4 text-sm">
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-green-500/20 border border-green-500/30"></div>
-                        <span className="text-green-400">Active / Valid</span>
+                        <div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-300"></div>
+                        <span className="text-emerald-600">Active / Valid</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500/30"></div>
-                        <span className="text-red-400">Expired</span>
+                        <div className="w-4 h-4 rounded bg-red-100 border border-red-300"></div>
+                        <span className="text-red-600">Expired</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-slate-700/50 border border-slate-600/30"></div>
-                        <span className="text-slate-500">Not Assigned</span>
+                        <div className="w-4 h-4 rounded bg-slate-100 border border-slate-300"></div>
+                        <span className="text-slate-600">Not Assigned</span>
                     </div>
                 </div>
             </div>
