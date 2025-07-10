@@ -228,7 +228,7 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                         <Tooltip content={<CustomTooltip />} />
                         <Bar 
                             dataKey="count" 
-                            fill="#10B981"
+                            fill="#FCD34D"
                             radius={[4, 4, 0, 0]}
                             className="hover:opacity-80 transition-opacity"
                         />
