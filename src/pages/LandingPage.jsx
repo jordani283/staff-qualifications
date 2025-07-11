@@ -71,6 +71,14 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
     {
       question: "Is it suitable for CQC compliance?",
       answer: "Yes, TeamCertify was designed specifically to help care providers meet CQC evidence requirements. Generate compliance reports, track training requirements, and maintain audit trails with ease."
+    },
+    {
+      question: "Can it track different types of training and certifications?",
+      answer: "Yes, TeamCertify works with any type of staff training, qualification, or certification - from mandatory safety training to professional development courses and industry-specific certifications."
+    },
+    {
+      question: "How does it help with training compliance audits?",
+      answer: "TeamCertify provides instant audit trails, compliance reports, and real-time visibility into your team's training status. Generate comprehensive reports showing which staff have completed required training and when renewals are due."
     }
   ];
 
@@ -114,13 +122,13 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                Never Miss an Expiry Date Again
+                Never Miss a Training Expiry Again
                 <span className="text-emerald-600 block mt-2">
-                  Effortless CQC Compliance
+                  Effortless Staff Certification Tracking
                 </span>
               </h1>
               <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-                TeamCertify gives care providers peace of mind by tracking and automating all staff certifications — so nothing ever falls through the cracks.
+                TeamCertify gives organizations peace of mind by tracking and automating all staff training, qualifications, and certifications — so nothing ever falls through the cracks.
               </p>
               <div className="flex flex-col gap-4 mb-8">
                 <button
@@ -193,7 +201,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-8">
-            Still juggling spreadsheets and worrying about CQC inspections?
+            Still juggling spreadsheets and worrying about compliance audits?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
@@ -202,7 +210,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <ul className="text-left space-y-3 text-red-700">
                 <li className="flex items-start">
                   <X className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>Risking non-compliance with out-of-date records</span>
+                  <span>Risking non-compliance with out-of-date training records</span>
                 </li>
                 <li className="flex items-start">
                   <X className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -214,7 +222,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                 </li>
                 <li className="flex items-start">
                   <X className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>Facing delays when onboarding new staff</span>
+                  <span>Facing delays when onboarding new staff with incomplete qualifications</span>
                 </li>
               </ul>
             </div>
@@ -222,7 +230,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-800 mb-4">Sarah's Story</h3>
               <blockquote className="text-slate-700 italic">
-                "I'm terrified a certificate has expired and I've missed it. What if there's an incident and we're not covered? What will the CQC inspector find? I waste hours every month chasing staff for their documents and updating this spreadsheet. There has to be a better way."
+                "I'm terrified a training certificate has expired and I've missed it. What if there's an incident and we're not covered? What will the compliance inspector find? I waste hours every month chasing staff for their documents and updating this spreadsheet. There has to be a better way."
               </blockquote>
             </div>
           </div>
@@ -234,7 +242,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6">
-              Your Always-On, Always-Compliant Certification System
+              Your Always-On, Always-Compliant Training Management System
             </h2>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Transform your certification management from a source of stress into a system that gives you confidence and peace of mind.
@@ -248,7 +256,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">Achieve Peace of Mind</h3>
               <p className="text-slate-600">
-                Know you're audit-ready 24/7 with a real-time, color-coded dashboard that shows exactly what needs attention.
+                Know you're audit-ready 24/7 with a real-time, color-coded dashboard that shows exactly what training needs attention.
               </p>
             </div>
             
@@ -258,7 +266,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">Save Dozens of Hours</h3>
               <p className="text-slate-600">
-                Automated email reminders mean no more manual chasing. Let TeamCertify do the work for you.
+                Automated email reminders mean no more manual chasing. Let TeamCertify do the training administration work for you.
               </p>
             </div>
             
@@ -268,7 +276,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">Eliminate Human Error</h3>
               <p className="text-slate-600">
-                Centralise all certificates, documents, and expiry dates in one secure, reliable place.
+                Centralise all training records, certificates, and expiry dates in one secure, reliable place.
               </p>
             </div>
           </div>
@@ -292,7 +300,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">1. Add Your Staff</h3>
               <p className="text-slate-600">
-                Quickly import or add team members. Upload your existing spreadsheet or add staff manually.
+                Quickly import or add team members. Upload your existing training records or add staff manually.
               </p>
             </div>
             
@@ -302,7 +310,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">2. Track Certifications</h3>
               <p className="text-slate-600">
-                Upload documents and set expiry dates. Our system automatically calculates renewal dates.
+                Upload training documents and set expiry dates. Our system automatically calculates renewal dates.
               </p>
             </div>
             
@@ -312,7 +320,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               </div>
               <h3 className="text-xl font-semibold text-slate-900 mb-4">3. Relax</h3>
               <p className="text-slate-600">
-                Get automated alerts before anything expires. You're now audit-ready and stress-free.
+                Get automated alerts before any training expires. You're now audit-ready and stress-free.
               </p>
             </div>
           </div>
@@ -334,15 +342,15 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-6">
                   <BarChart3 className="w-8 h-8 inline-block mr-3 text-emerald-600" />
-                  The Compliance Dashboard
+                  The Training & Compliance Dashboard
                 </h3>
                 <p className="text-lg text-slate-600 mb-6">
-                  See your entire team's status in a single glance. Green, amber, red tells you exactly who needs attention.
+                  See your entire team's training status in a single glance. Green, amber, red tells you exactly who needs attention.
                 </p>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
-                    Instant visibility into team compliance status
+                    Instant visibility into team training compliance status
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
@@ -350,7 +358,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-emerald-600 mr-3" />
-                    Real-time updates when certificates are renewed
+                    Real-time updates when certifications are renewed
                   </li>
                 </ul>
               </div>
@@ -433,7 +441,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                   Secure Document Storage
                 </h3>
                 <p className="text-lg text-slate-600 mb-6">
-                  Keep every certificate and DBS check securely stored and accessible in one place. No more paper folders.
+                  Keep every training certificate and qualification securely stored and accessible in one place. No more paper folders.
                 </p>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-center">
@@ -442,7 +450,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-purple-600 mr-3" />
-                    Instant access to any certificate when needed
+                    Instant access to any training record when needed
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-purple-600 mr-3" />
@@ -537,8 +545,8 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                 <Award className="w-8 h-8 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Designed with CQC requirements in mind</h3>
-              <p className="text-sm text-slate-600">Built specifically for UK care providers</p>
+              <h3 className="font-semibold text-slate-900 mb-2">Built for Regulated Industries</h3>
+              <p className="text-sm text-slate-600">Built specifically for organizations with strict compliance requirements, including care providers</p>
             </div>
             
             <div className="flex flex-col items-center">
@@ -664,7 +672,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6">
-              Ready to Swap Spreadsheet Stress for Compliance Confidence?
+              Ready to Swap Spreadsheet Stress for Training Compliance Confidence?
             </h2>
             <button
               onClick={() => onNavigateToAuth('signup')}
@@ -673,7 +681,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               Start My Free 30-Day Trial - No Card Required
             </button>
             <p className="text-slate-600 mt-4">
-              Join hundreds of care providers who've eliminated certification stress
+              Join hundreds of organizations who've eliminated training administration stress
             </p>
           </div>
 
@@ -715,7 +723,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
               <span className="text-xl font-bold">TeamCertify</span>
             </div>
             <p className="text-slate-400">
-              Giving care providers peace of mind through effortless compliance
+              Giving organizations peace of mind through effortless training compliance
             </p>
           </div>
         </div>
