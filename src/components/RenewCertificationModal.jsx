@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { X, RefreshCw, Calendar, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabase.js';
 import { showToast } from './ui.jsx';
+import { updateCertificationWithAudit } from '../utils/certificationEditing.js';
 
 const RenewCertificationModal = ({ 
   isOpen, 
@@ -107,25 +108,35 @@ const RenewCertificationModal = ({
       //   renewal_reason: renewalReason || null
       // });
       
-      // Call the Supabase function to renew the certification
-      const { data, error } = await supabase.rpc('renew_certification_for_staff', {
-        certification_id: certificationId,
-        new_issue_date: formattedNewIssueDate,
-        new_expiry_date: formattedNewExpiryDate,
-        renewal_reason: renewalReason || null
-      });
+      // Update certification using the same approach as the staff section
+      const updates = {
+        issue_date: formattedNewIssueDate,
+        expiry_date: formattedNewExpiryDate
+      };
+
+      const result = await updateCertificationWithAudit(certificationId, updates);
       
-      if (error) {
-        console.error('Error renewing certification:', error);
-        showToast(`Failed to renew certification: ${error.message}`, 'error');
+      if (result.error) {
+        console.error('Error renewing certification:', result.error);
+        showToast(`Failed to renew certification: ${result.error.message}`, 'error');
         return;
       }
       
-      // Check if the function returned an error
-      if (data && !data.success) {
-        console.error('Function returned error:', data.error);
-        showToast(`Failed to renew certification: ${data.error}`, 'error');
-        return;
+      // Add renewal reason to audit trail if provided
+      if (renewalReason && renewalReason.trim()) {
+        try {
+          await supabase
+            .from('certification_audit_logs')
+            .insert({
+              user_id: (await supabase.auth.getUser()).data.user?.id,
+              certification_id: certificationId,
+              action_type: 'RENEWAL_NOTE',
+              note: renewalReason.trim()
+            });
+        } catch (error) {
+          console.warn('Failed to log renewal reason:', error);
+          // Don't fail the renewal for this
+        }
       }
       
       // Success

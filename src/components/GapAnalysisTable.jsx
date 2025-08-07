@@ -40,11 +40,11 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
     return (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left table-fixed">
                     <thead className="bg-slate-50">
                         <tr>
                             {/* Top-left corner cell */}
-                            <th className="p-2 pb-4 text-xs text-slate-600 uppercase font-medium border-r border-slate-200 sticky left-0 bg-slate-50 z-10 min-w-[200px] h-40 align-bottom">
+                            <th className="p-2 pb-4 text-xs text-slate-600 uppercase font-medium border-r border-slate-200 sticky left-0 bg-slate-50 z-10 h-48 align-bottom" style={{ width: '140px' }}>
                                 <div className="flex items-end h-full">
                                     Staff / Certificates
                                 </div>
@@ -54,13 +54,14 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                             {templateData.map(template => (
                                 <th 
                                     key={template.id} 
-                                    className="p-2 text-sm text-slate-600 uppercase font-medium text-center border-l border-slate-200 min-w-[120px] relative"
+                                    className="p-2 text-sm text-slate-600 uppercase font-medium text-center relative"
                                     title={template.name}
+                                    style={{ width: '90px' }}
                                 >
-                                    <div className="h-36 flex items-center justify-center pb-4">
+                                    <div className="h-60 flex items-end justify-start pb-0 pl-1">
                                         <div 
-                                            className="transform -rotate-45 origin-bottom-left whitespace-nowrap text-center max-w-none"
-                                            style={{ transformOrigin: 'bottom center' }}
+                                            className="transform -rotate-45 whitespace-nowrap text-center max-w-none"
+                                            style={{ transformOrigin: 'bottom left' }}
                                         >
                                             {template.name}
                                         </div>
@@ -73,12 +74,12 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                         {staffData.map((staff, staffIndex) => (
                             <tr 
                                 key={staff.id} 
-                                className={`border-t border-slate-100 hover:bg-slate-50 transition-colors ${
+                                className={`hover:bg-slate-50 transition-colors ${
                                     staffIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
                                 }`}
                             >
                                 {/* Staff name cell - sticky left column */}
-                                <td className="p-4 font-medium text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10 min-w-[200px]">
+                                <td className="p-4 font-medium text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-10" style={{ width: '140px' }}>
                                     <div className="truncate" title={staff.full_name}>
                                         {staff.full_name}
                                     </div>
@@ -90,7 +91,7 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                                     return (
                                         <td 
                                             key={template.id} 
-                                            className="p-2 text-center border-l border-slate-100"
+                                            className="p-1 text-left pl-2 pt-2"
                                         >
                                             <div 
                                                 className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors cursor-default`}

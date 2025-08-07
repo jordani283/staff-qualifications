@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.js';
-import { logCertificationEdited, getFieldChanges } from './auditLogger.js';
+import { logCertificationEdited, getFieldChanges, logCertificationComment } from './auditLogger.js';
 
 /**
  * Update certification with automatic audit logging
@@ -59,6 +59,18 @@ export async function updateCertificationWithAudit(certificationId, updates) {
         // Check if audit logging had any issues (but don't fail the update)
         if (auditResult.some(result => result.error)) {
             console.warn('Some audit log entries failed to save:', auditResult);
+        }
+
+        // If notes were changed, also log as a COMMENT action
+        const notesChange = changes.find(change => change.field === 'notes');
+        if (notesChange && notesChange.newValue) {
+            const commentResult = await logCertificationComment(
+                certificationId, 
+                `Note updated: ${notesChange.newValue}`
+            );
+            if (commentResult.error) {
+                console.warn('Failed to log comment for notes change:', commentResult.error);
+            }
         }
 
         return { 

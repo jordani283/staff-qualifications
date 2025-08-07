@@ -4,12 +4,14 @@ import { Spinner, StatusBadge, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import CertificationModal from '../components/CertificationModal';
 import RenewCertificationModal from '../components/RenewCertificationModal';
-import { Plus, ArrowLeft, Trash2, FileText, RefreshCw, UserX } from 'lucide-react';
+import { Plus, ArrowLeft, Trash2, FileText, RefreshCw, UserX, Edit2, Save, X } from 'lucide-react';
 import { 
     logCertificationCreated, 
     logCertificationDeleted, 
     logDocumentUploaded,
-    fetchAuditTrail 
+    fetchAuditTrail,
+    logCertificationComment,
+    logStaffUpdated
 } from '../utils/auditLogger.js';
 import { updateCertificationWithAudit } from '../utils/certificationEditing.js';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
@@ -78,6 +80,7 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
                 issue_date: formData.get('issue_date'),
                 expiry_date: formData.get('expiry_date'),
                 document_url: documentUrl,
+                notes: formData.get('notes') || null,
             };
 
             const { data: insertedCert, error } = await supabase
@@ -95,6 +98,17 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
             // Log document upload if a document was uploaded
             if (documentUrl && file) {
                 await logDocumentUploaded(insertedCert.id, file.name);
+            }
+
+            // Log initial notes as a comment if provided
+            if (newCert.notes && newCert.notes.trim()) {
+                const commentResult = await logCertificationComment(
+                    insertedCert.id, 
+                    `Initial note: ${newCert.notes.trim()}`
+                );
+                if (commentResult.error) {
+                    console.warn('Failed to log initial note as comment:', commentResult.error);
+                }
             }
 
             showToast('Certification assigned!', 'success');
@@ -129,6 +143,10 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
                     <label htmlFor="document_upload" className="block text-sm font-medium text-slate-700 mb-2">Upload Document (Optional)</label>
                     <input id="document_upload" name="document" type="file" className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors" />
                 </div>
+                <div>
+                    <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-2">Notes (Optional)</label>
+                    <textarea id="notes" name="notes" rows="3" placeholder="Add any notes about this certification..." className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"></textarea>
+                </div>
                 <div className="flex justify-end pt-4 gap-3">
                     <button type="button" onClick={onClose} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
                     <button type="submit" disabled={isSubmitting} form="assign-cert-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50">
@@ -141,7 +159,27 @@ function AssignCertDialog({ staffId, userId, onClose, onSuccess }) {
 }
 
 export default function StaffDetailPage({ currentPageData, setPage, user, session, onOpenExpiredModal }) {
-    const { staffMember } = currentPageData;
+    console.log('StaffDetailPage received currentPageData:', currentPageData);
+    const { staffMember, openCertificationId } = currentPageData || {};
+    console.log('Extracted staffMember:', staffMember);
+    
+    // Early return if staffMember is not available
+    if (!staffMember) {
+        console.log('No staffMember found, showing error page');
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <p className="text-slate-600 mb-4">Staff member not found.</p>
+                    <button
+                        onClick={() => setPage('staff')}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                    >
+                        Back to Staff
+                    </button>
+                </div>
+            </div>
+        );
+    }
     const [certifications, setCertifications] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -159,6 +197,18 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
     const [showDeleteStaffDialog, setShowDeleteStaffDialog] = useState(false);
     const [staffCertCount, setStaffCertCount] = useState(0);
+    
+    // State for staff name editing
+    const [isEditingStaffName, setIsEditingStaffName] = useState(false);
+    const [editingStaffName, setEditingStaffName] = useState('');
+    const [savingStaffName, setSavingStaffName] = useState(false);
+    
+    // State for staff details editing (job title and email)
+    const [isEditingStaffDetails, setIsEditingStaffDetails] = useState(false);
+    const [editingJobTitle, setEditingJobTitle] = useState('');
+    const [editingEmail, setEditingEmail] = useState('');
+    const [savingStaffDetails, setSavingStaffDetails] = useState(false);
+    const [showEditStaffDialog, setShowEditStaffDialog] = useState(false);
 
     // Get feature access permissions
     const { canCreate, canDelete, canAssign, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
@@ -254,6 +304,16 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         fetchStaffCertifications();
     }, [fetchStaffCertifications]);
 
+    // Handle automatic certification modal opening from activities navigation
+    useEffect(() => {
+        if (openCertificationId && certifications.length > 0) {
+            const cert = certifications.find(c => c.id === openCertificationId);
+            if (cert) {
+                handleCertificationClick(cert);
+            }
+        }
+    }, [openCertificationId, certifications]);
+
     const handleAssignCertification = async (e) => {
         e.preventDefault();
         if (!session) {
@@ -311,6 +371,17 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
             if (documentUrl && fileInput) {
                 await logDocumentUploaded(insertedCert.id, fileInput.name);
             }
+
+            // Log initial notes as a comment if provided
+            if (newCertification.notes && newCertification.notes.trim()) {
+                const commentResult = await logCertificationComment(
+                    insertedCert.id, 
+                    `Initial note: ${newCertification.notes.trim()}`
+                );
+                if (commentResult.error) {
+                    console.warn('Failed to log initial note as comment:', commentResult.error);
+                }
+            }
             
             showToast('Certification assigned!', 'success');
             setShowAssignDialog(false);
@@ -339,7 +410,8 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
         // Log deletion before actually deleting
         await logCertificationDeleted(certificationToDelete.id, {
             template_name: certificationToDelete.template_name,
-            expiry_date: certificationToDelete.expiry_date
+            expiry_date: certificationToDelete.expiry_date,
+            staff_name: staffMember.full_name
         });
         
         const { error } = await supabase
@@ -372,6 +444,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const handleCertificationClick = async (cert) => {
         setSelectedCertification({
             id: cert.id,
+            template_id: cert.template_id,
             certification_name: cert.template_name,
             staff_name: staffMember.full_name,
             issue_date: cert.issue_date,
@@ -420,7 +493,12 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
 
     // Handle opening the renewal modal
     const handleRenewCertification = (cert) => {
-        setCertificationToRenew(cert);
+        // Ensure the template name is included, handling both data structures
+        const certToRenew = {
+            ...cert,
+            template_name: cert.template_name || cert.certification_name || selectedCertification?.certification_name,
+        };
+        setCertificationToRenew(certToRenew);
         setShowRenewModal(true);
     };
 
@@ -436,6 +514,212 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const handleCloseRenewalModal = () => {
         setCertificationToRenew(null);
         setShowRenewModal(false);
+    };
+
+    // Handle staff name editing
+    const handleStaffNameEdit = () => {
+        setEditingStaffName(staffMember.full_name);
+        setIsEditingStaffName(true);
+    };
+
+    const handleStaffNameCancel = () => {
+        setIsEditingStaffName(false);
+        setEditingStaffName('');
+    };
+
+    const handleStaffNameSave = async () => {
+        if (!editingStaffName.trim() || editingStaffName.trim() === staffMember.full_name) {
+            setIsEditingStaffName(false);
+            return;
+        }
+
+        setSavingStaffName(true);
+        try {
+            const oldData = {
+                full_name: staffMember.full_name,
+                email: staffMember.email,
+                job_title: staffMember.job_title
+            };
+
+            const newData = {
+                ...oldData,
+                full_name: editingStaffName.trim()
+            };
+
+            // Update the staff member in the database
+            const { error } = await supabase
+                .from('staff')
+                .update({ full_name: editingStaffName.trim() })
+                .eq('id', staffMember.id);
+
+            if (error) throw error;
+
+            // Log the staff update activity
+            await logStaffUpdated(staffMember.id, oldData, newData);
+
+            // Update local state - modify the staffMember object directly
+            staffMember.full_name = editingStaffName.trim();
+
+            setIsEditingStaffName(false);
+            showToast('Staff name updated successfully', 'success');
+
+        } catch (error) {
+            console.error('Failed to update staff name:', error);
+            showToast('Failed to update staff name', 'error');
+        } finally {
+            setSavingStaffName(false);
+        }
+    };
+
+    // Handle staff details editing (job title and email)
+    const handleStaffDetailsEdit = () => {
+        setEditingJobTitle(staffMember.job_title || '');
+        setEditingEmail(staffMember.email || '');
+        setIsEditingStaffDetails(true);
+    };
+
+    const handleStaffDetailsCancel = () => {
+        setIsEditingStaffDetails(false);
+        setEditingJobTitle('');
+        setEditingEmail('');
+    };
+
+    const handleStaffDetailsSave = async () => {
+        const trimmedJobTitle = editingJobTitle.trim();
+        const trimmedEmail = editingEmail.trim();
+        
+        // Check if there are actually changes
+        if (trimmedJobTitle === (staffMember.job_title || '') && 
+            trimmedEmail === (staffMember.email || '')) {
+            setIsEditingStaffDetails(false);
+            return;
+        }
+
+        // Basic email validation if email is provided
+        if (trimmedEmail && !trimmedEmail.includes('@')) {
+            showToast('Please enter a valid email address', 'error');
+            return;
+        }
+
+        setSavingStaffDetails(true);
+        try {
+            const oldData = {
+                full_name: staffMember.full_name,
+                email: staffMember.email,
+                job_title: staffMember.job_title
+            };
+
+            const newData = {
+                ...oldData,
+                job_title: trimmedJobTitle || null,
+                email: trimmedEmail || null
+            };
+
+            // Update the staff member in the database
+            const { error } = await supabase
+                .from('staff')
+                .update({ 
+                    job_title: trimmedJobTitle || null,
+                    email: trimmedEmail || null
+                })
+                .eq('id', staffMember.id);
+
+            if (error) throw error;
+
+            // Log the staff update activity
+            await logStaffUpdated(staffMember.id, oldData, newData);
+
+            // Update local state - modify the staffMember object directly
+            staffMember.job_title = trimmedJobTitle || null;
+            staffMember.email = trimmedEmail || null;
+
+            setIsEditingStaffDetails(false);
+            showToast('Staff details updated successfully', 'success');
+
+        } catch (error) {
+            console.error('Failed to update staff details:', error);
+            showToast('Failed to update staff details', 'error');
+        } finally {
+            setSavingStaffDetails(false);
+        }
+    };
+
+    // Unified edit dialog handlers
+    const handleOpenEditStaffDialog = () => {
+        setEditingStaffName(staffMember.full_name || '');
+        setEditingJobTitle(staffMember.job_title || '');
+        setEditingEmail(staffMember.email || '');
+        setShowEditStaffDialog(true);
+    };
+
+    const handleCloseEditStaffDialog = () => {
+        setShowEditStaffDialog(false);
+    };
+
+    const handleSaveStaffAllDetails = async () => {
+        const trimmedName = (editingStaffName || '').trim();
+        const trimmedJobTitle = (editingJobTitle || '').trim();
+        const trimmedEmail = (editingEmail || '').trim();
+
+        if (!trimmedName) {
+            showToast('Full name is required', 'error');
+            return;
+        }
+
+        if (trimmedEmail && !trimmedEmail.includes('@')) {
+            showToast('Please enter a valid email address', 'error');
+            return;
+        }
+
+        const noChanges =
+            trimmedName === (staffMember.full_name || '') &&
+            trimmedJobTitle === (staffMember.job_title || '') &&
+            trimmedEmail === (staffMember.email || '');
+
+        if (noChanges) {
+            setShowEditStaffDialog(false);
+            return;
+        }
+
+        setSavingStaffDetails(true);
+        try {
+            const oldData = {
+                full_name: staffMember.full_name,
+                email: staffMember.email,
+                job_title: staffMember.job_title
+            };
+
+            const newData = {
+                full_name: trimmedName,
+                job_title: trimmedJobTitle || null,
+                email: trimmedEmail || null
+            };
+
+            const { error } = await supabase
+                .from('staff')
+                .update({
+                    full_name: trimmedName,
+                    job_title: trimmedJobTitle || null,
+                    email: trimmedEmail || null
+                })
+                .eq('id', staffMember.id);
+
+            if (error) throw error;
+
+            await logStaffUpdated(staffMember.id, oldData, newData);
+
+            staffMember.full_name = trimmedName;
+            staffMember.job_title = trimmedJobTitle || null;
+            staffMember.email = trimmedEmail || null;
+
+            setShowEditStaffDialog(false);
+            showToast('Staff details updated successfully', 'success');
+        } catch (error) {
+            console.error('Failed to update staff details:', error);
+            showToast('Failed to update staff details', 'error');
+        } finally {
+            setSavingStaffDetails(false);
+        }
     };
 
     // Handle staff deletion
@@ -520,10 +804,96 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                     <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold text-slate-900">{staffMember.full_name}</h1>
-                    <p className="text-slate-600">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
+                    {/* Staff Name - Editable */}
+                    {isEditingStaffName ? (
+                        <div className="flex items-center gap-3 mb-2">
+                            <input
+                                type="text"
+                                value={editingStaffName}
+                                onChange={(e) => setEditingStaffName(e.target.value)}
+                                className="text-3xl font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                disabled={savingStaffName}
+                                placeholder="Enter staff name"
+                                autoFocus
+                            />
+                            <button
+                                onClick={handleStaffNameSave}
+                                disabled={savingStaffName}
+                                className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Save changes"
+                            >
+                                <Save className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleStaffNameCancel}
+                                disabled={savingStaffName}
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Cancel"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-3 mb-2 group">
+                            <h1 className="text-3xl font-bold text-slate-900">{staffMember.full_name}</h1>
+                        </div>
+                    )}
+                    
+                    {/* Job Title and Email - Editable */}
+                    {isEditingStaffDetails ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="text"
+                                    value={editingJobTitle}
+                                    onChange={(e) => setEditingJobTitle(e.target.value)}
+                                    className="text-slate-600 bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex-1"
+                                    disabled={savingStaffDetails}
+                                    placeholder="Enter job title"
+                                />
+                                <input
+                                    type="email"
+                                    value={editingEmail}
+                                    onChange={(e) => setEditingEmail(e.target.value)}
+                                    className="text-slate-600 bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex-1"
+                                    disabled={savingStaffDetails}
+                                    placeholder="Enter email address"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleStaffDetailsSave}
+                                    disabled={savingStaffDetails}
+                                    className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                                    title="Save changes"
+                                >
+                                    <Save className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={handleStaffDetailsCancel}
+                                    disabled={savingStaffDetails}
+                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+                                    title="Cancel"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 group">
+                            <p className="text-slate-600">{staffMember.job_title || 'No job title'} • {staffMember.email || 'No email'}</p>
+                        </div>
+                    )}
                 </div>
                 <div className="flex gap-3">
+                    {/* Unified Edit Staff Button */}
+                    <button
+                        onClick={handleOpenEditStaffDialog}
+                        className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors"
+                        title="Edit staff details"
+                    >
+                        <Edit2 className="h-5 w-5" />
+                    </button>
                     <button 
                         onClick={() => handleRestrictedAction(
                             () => setShowAssignDialog(true), 
@@ -657,7 +1027,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 value={selectedTemplateId}
                                 onChange={handleTemplateChange}
                                 required 
-                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:outline-none focus:ring-0 transition-colors"
                             >
                                 <option value="">Select a certificate type...</option>
                                 {templates.map(template => (
@@ -674,7 +1044,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 value={issueDate}
                                 onChange={handleIssueDateChange}
                                 required 
-                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
+                                    className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:outline-none focus:ring-0 transition-colors"
                             />
                         </div>
                         <div>
@@ -686,7 +1056,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 value={expiryDate}
                                 onChange={(e) => setExpiryDate(e.target.value)}
                                 required 
-                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
+                                    className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:outline-none focus:ring-0 transition-colors"
                             />
                         </div>
                         <div>
@@ -711,6 +1081,55 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                                 Cancel
                             </button>
                             <button type="submit" form="assign-certification-form" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm">Assign Certification</button>
+                        </div>
+                    </form>
+                </Dialog>
+            )}
+            
+            {/* Unified Edit Staff Details Dialog */}
+            {showEditStaffDialog && (
+                <Dialog
+                    id="edit-staff-details-dialog"
+                    title="Edit Staff Details"
+                    onClose={handleCloseEditStaffDialog}
+                    containerSelector="#main-content"
+                    overlayPosition="absolute"
+                >
+                    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveStaffAllDetails(); }}>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                            <input
+                                type="text"
+                                value={editingStaffName}
+                                onChange={(e) => setEditingStaffName(e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                                placeholder="Enter full name"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Job Title</label>
+                            <input
+                                type="text"
+                                value={editingJobTitle}
+                                onChange={(e) => setEditingJobTitle(e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                                placeholder="Enter job title"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                            <input
+                                type="email"
+                                value={editingEmail}
+                                onChange={(e) => setEditingEmail(e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                                placeholder="Enter email address"
+                            />
+                        </div>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <button type="button" onClick={handleCloseEditStaffDialog} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
+                            <button type="submit" disabled={savingStaffDetails} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50">{savingStaffDetails ? 'Saving...' : 'Save Changes'}</button>
                         </div>
                     </form>
                 </Dialog>
@@ -816,6 +1235,12 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                 isReadOnly={!canDelete} // Make read-only for expired trials
                 canRenew={canDelete} // Use same permission as delete for renewal
                 onRenew={handleRenewCertification}
+                onDataChange={() => {
+                    fetchStaffCertifications();
+                    if (selectedCertification) {
+                        fetchAuditTrailData(selectedCertification.id);
+                    }
+                }}
             />
 
             {/* Renewal Modal */}

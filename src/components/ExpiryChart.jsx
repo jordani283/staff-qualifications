@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { CardSpinner } from './ui';
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { RotateCcw } from 'lucide-react';
 
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }) => {
@@ -91,6 +92,16 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
         }
     }, [selectedStaff, startDate, endDate, onFiltersChange]);
 
+    const handleResetFilters = () => {
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        
+        setStartDate(today.toISOString().split('T')[0]);
+        setEndDate(thirtyDaysFromNow.toISOString().split('T')[0]);
+        setSelectedStaff('');
+    };
+
     if (loading) {
         return (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -117,13 +128,27 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            onClick={(e) => {
+                                e.target.focus();
+                                if (e.target.showPicker) {
+                                    e.target.showPicker();
+                                }
+                            }}
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
+                            style={{ colorScheme: 'light' }}
                         />
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            onClick={(e) => {
+                                e.target.focus();
+                                if (e.target.showPicker) {
+                                    e.target.showPicker();
+                                }
+                            }}
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
+                            style={{ colorScheme: 'light' }}
                         />
                         <select
                             value={selectedStaff}
@@ -135,6 +160,14 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                                 <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                             ))}
                         </select>
+                        <button
+                            onClick={handleResetFilters}
+                            className="bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors flex items-center gap-2"
+                            title="Reset filters to default"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                            Reset
+                        </button>
                     </div>
                 </div>
                 <div className="h-64 flex items-center justify-center">
@@ -153,13 +186,27 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        onClick={(e) => {
+                            e.target.focus();
+                            if (e.target.showPicker) {
+                                e.target.showPicker();
+                            }
+                        }}
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
+                        style={{ colorScheme: 'light' }}
                     />
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        onClick={(e) => {
+                            e.target.focus();
+                            if (e.target.showPicker) {
+                                e.target.showPicker();
+                            }
+                        }}
+                        className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
+                        style={{ colorScheme: 'light' }}
                     />
                     <select
                         value={selectedStaff}
@@ -171,6 +218,14 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                             <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                         ))}
                     </select>
+                    <button
+                        onClick={handleResetFilters}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors flex items-center gap-2"
+                        title="Reset filters to default"
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                        Reset
+                    </button>
                 </div>
             </div>
             <div className="h-64 md:h-80">

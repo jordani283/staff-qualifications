@@ -4,6 +4,7 @@ import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Plus, Trash2 } from 'lucide-react';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
+import { logCertificationTemplateDeleted } from '../utils/auditLogger.js';
 
 export default function CertificatesPage({ user, session, onOpenExpiredModal, currentPageData }) {
     const [templates, setTemplates] = useState([]);
@@ -80,6 +81,9 @@ export default function CertificatesPage({ user, session, onOpenExpiredModal, cu
             showToast('No active session.', 'error');
             return;
         }
+        
+        // Log template deletion first
+        await logCertificationTemplateDeleted(templateToDelete);
         
         const { error } = await supabase.from('certification_templates').delete().eq('id', templateToDelete.id);
             if(error) {

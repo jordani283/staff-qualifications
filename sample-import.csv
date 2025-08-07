@@ -1,0 +1,9 @@
+staff_full_name,staff_email,staff_job_title,certification_name,certification_issue_date,certification_expiry_date,certification_notes,validity_period_months
+John Smith,john.smith@company.com,Safety Manager,First Aid,2024-01-15,2026-01-15,Renewed early,24
+John Smith,john.smith@company.com,Safety Manager,Fire Safety,2024-02-10,2025-02-10,,12
+Jane Doe,jane.doe@company.com,Site Supervisor,First Aid,2024-01-20,2026-01-20,,24
+Jane Doe,jane.doe@company.com,Site Supervisor,Manual Handling,2024-03-05,2025-03-05,Initial training,12
+Mike Johnson,mike.johnson@company.com,Equipment Operator,Equipment Safety,2024-01-10,2025-01-10,,12
+Sarah Wilson,sarah.wilson@company.com,Team Lead,First Aid,2024-02-01,2026-02-01,,24
+Sarah Wilson,sarah.wilson@company.com,Team Lead,Leadership Training,2024-02-15,2025-02-15,Advanced course,12
+Tom Brown,tom.brown@company.com,Technician,Technical Certification,2024-01-25,2025-01-25,,12 

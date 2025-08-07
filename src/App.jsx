@@ -351,6 +351,8 @@ export default function App() {
                         page={page} 
                         currentPageData={currentPageData} 
                         setPage={handleSetPage} 
+                        handleSetPage={handleSetPage}
+                        setCurrentPageData={setCurrentPageData}
                         user={user} 
                         profile={profile} 
                         session={enhancedSession}
@@ -438,13 +440,13 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
     );
 }
 
-function PageContent({ page, currentPageData, setPage, user, profile, session, onOpenExpiredModal, supportUnread }) {
+function PageContent({ page, currentPageData, setPage, handleSetPage, setCurrentPageData, user, profile, session, onOpenExpiredModal, supportUnread }) {
     switch (page) {
         case 'dashboard': return <DashboardPage profile={profile} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
         case 'staff': return <StaffPage setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
         case 'staffDetail': return <StaffDetailPage currentPageData={currentPageData} setPage={setPage} user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
-        case 'activities': return <ActivitiesPage user={user} session={session} />;
+        case 'activities': return <ActivitiesPage user={user} session={session} setPage={handleSetPage} />;
         case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
         case 'support': return <SupportPage session={session} supportUnread={supportUnread} />;
         case 'admin-support': return <AdminSupportPage session={session} />;

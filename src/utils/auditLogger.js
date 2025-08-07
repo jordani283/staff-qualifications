@@ -97,7 +97,7 @@ export async function logCertificationEdited(certificationId, changes) {
   const promises = changes.map(change => 
     logAuditEntry({
       certificationId,
-      actionType: AUDIT_ACTIONS.EDIT,
+      actionType: change.field === 'template_id' ? AUDIT_ACTIONS.RENEW : AUDIT_ACTIONS.EDIT,
       field: change.field,
       oldValue: change.oldValue,
       newValue: change.newValue
@@ -131,10 +131,11 @@ export async function logDocumentUploaded(certificationId, filename, isReplaceme
  * @returns {Promise<Object>} Result of the audit log
  */
 export async function logCertificationDeleted(certificationId, certificationData) {
+  const staffInfo = certificationData.staff_name ? ` for ${certificationData.staff_name}` : '';
   return logAuditEntry({
     certificationId,
     actionType: AUDIT_ACTIONS.DELETE,
-    note: `Certification deleted: ${certificationData.template_name || 'Unknown'} (${certificationData.expiry_date || 'No expiry date'})`
+    note: `Certification deleted${staffInfo}: ${certificationData.template_name || 'Unknown'} (${certificationData.expiry_date || 'No expiry date'})`
   });
 }
 
@@ -260,6 +261,102 @@ export function getFieldChanges(oldData, newData, fieldsToTrack) {
 }
 
 /**
+ * Log staff creation audit entry
+ * @param {string} staffId - UUID of the staff member
+ * @param {Object} staffData - The staff data that was created
+ * @returns {Promise<Object>} Result of the audit log
+ */
+export async function logStaffCreated(staffId, staffData) {
+  try {
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Failed to get user for staff creation audit log:', userError);
+      return { error: userError || new Error('No authenticated user') };
+    }
+
+    // Insert staff audit log entry
+    const { data, error } = await supabase
+      .from('staff_audit_logs')
+      .insert({
+        user_id: user.id,
+        staff_id: staffId,
+        event_type: STAFF_AUDIT_ACTIONS.STAFF_CREATED,
+        event_description: `Staff member created: ${staffData.full_name || 'Unknown'} (${staffData.job_title || 'No title'}) - ${staffData.email || 'No email'}`,
+        new_data: staffData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to log staff creation audit entry:', error);
+      return { error };
+    }
+
+    return { data };
+  } catch (err) {
+    console.error('Unexpected error logging staff creation audit entry:', err);
+    return { error: err };
+  }
+}
+
+/**
+ * Log staff update audit entry
+ * @param {string} staffId - UUID of the staff member
+ * @param {Object} oldData - The staff data before update
+ * @param {Object} newData - The staff data after update
+ * @returns {Promise<Object>} Result of the audit log
+ */
+export async function logStaffUpdated(staffId, oldData, newData) {
+  try {
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Failed to get user for staff update audit log:', userError);
+      return { error: userError || new Error('No authenticated user') };
+    }
+
+    // Get field changes for staff
+    const fieldsToTrack = ['full_name', 'email', 'job_title'];
+    const changes = getFieldChanges(oldData, newData, fieldsToTrack);
+    
+    if (changes.length === 0) {
+      return { data: null, message: 'No changes detected' };
+    }
+
+    const changeDescription = changes.map(change => 
+      `${change.field}: "${change.oldValue}" → "${change.newValue}"`
+    ).join(', ');
+
+    // Insert staff audit log entry
+    const { data, error } = await supabase
+      .from('staff_audit_logs')
+      .insert({
+        user_id: user.id,
+        staff_id: staffId,
+        event_type: STAFF_AUDIT_ACTIONS.STAFF_UPDATED,
+        event_description: `Staff member updated: ${newData.full_name || 'Unknown'} - Changes: ${changeDescription}`,
+        old_data: oldData,
+        new_data: newData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to log staff update audit entry:', error);
+      return { error };
+    }
+
+    return { data };
+  } catch (err) {
+    console.error('Unexpected error logging staff update audit entry:', err);
+    return { error: err };
+  }
+}
+
+/**
  * Log staff deletion audit entry
  * @param {string} staffId - UUID of the staff member
  * @param {Object} staffData - The staff data before deletion
@@ -298,5 +395,39 @@ export async function logStaffDeleted(staffId, staffData, certificationCount = 0
   } catch (err) {
     console.error('Unexpected error logging staff deletion audit entry:', err);
     return { error: err };
+  }
+}
+
+/**
+ * Log certification template deletion
+ * @param {Object} templateData - The template data before deletion
+ * @returns {Promise<Object>} Result of the audit log
+ */
+export async function logCertificationTemplateDeleted(templateData) {
+  try {
+    const session = await supabase.auth.getSession();
+    if (!session?.data?.session?.user?.id) {
+      return { error: 'No authenticated user' };
+    }
+
+    const { error } = await supabase
+      .from('staff_audit_logs')
+      .insert([{
+        user_id: session.data.session.user.id,
+        staff_id: null, // This is a template deletion, not specific to a staff member
+        event_type: 'TEMPLATE_DELETED',
+        event_description: `Certificate template deleted: ${templateData.name} (${templateData.validity_period_months} months validity)`,
+        old_data: templateData
+      }]);
+
+    if (error) {
+      console.error('Failed to log template deletion:', error);
+      return { error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error logging template deletion:', error);
+    return { error };
   }
 } 

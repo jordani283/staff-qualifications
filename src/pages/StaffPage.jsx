@@ -4,6 +4,7 @@ import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Plus, Trash2 } from 'lucide-react';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
+import { logStaffCreated } from '../utils/auditLogger.js';
 
 export default function StaffPage({ setPage, user, session, onOpenExpiredModal, currentPageData }) {
     const [staffWithCerts, setStaffWithCerts] = useState([]);
@@ -82,10 +83,23 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
             email: formData.get('email'),
             job_title: formData.get('job_title'),
         };
-        const { error } = await supabase.from('staff').insert(newStaff);
+        
+        const { data: createdStaff, error } = await supabase
+            .from('staff')
+            .insert(newStaff)
+            .select()
+            .single();
+            
         if(error) {
             showToast(error.message, 'error');
         } else {
+            // Log staff creation to audit trail
+            const auditResult = await logStaffCreated(createdStaff.id, newStaff);
+            if (auditResult.error) {
+                console.warn('Failed to log staff creation audit:', auditResult.error);
+                // Don't fail the operation for audit logging issues
+            }
+            
             showToast('Staff member added!', 'success');
             setShowDialog(false);
             fetchStaffAndCerts();
@@ -257,7 +271,7 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                 )}
             </div>
             {showDialog && canCreate && (
-                 <Dialog id="add-staff-dialog" title="Add New Staff Member" onClose={() => setShowDialog(false)}>
+                <Dialog id="add-staff-dialog" title="Add New Staff Member" onClose={() => setShowDialog(false)}>
                     <form id="add-staff-form" onSubmit={handleAddStaff} className="space-y-4">
                         <div>
                             <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
@@ -310,7 +324,7 @@ export default function StaffPage({ setPage, user, session, onOpenExpiredModal, 
                 <Dialog
                     id="delete-staff-dialog"
                     title="Confirm Staff Deletion"
-                    onClose={() => {
+                onClose={() => {
                         setShowDeleteDialog(false);
                         setStaffToDelete(null);
                     }}

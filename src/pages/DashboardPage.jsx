@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
-import { Download, Plus, Users, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Download, Plus, Users, FileSpreadsheet, RefreshCw, Upload } from 'lucide-react';
 import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
 import RenewCertificationModal from '../components/RenewCertificationModal';
+import ImportDataModal from '../components/ImportDataModal';
 import { fetchAuditTrail } from '../utils/auditLogger.js';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
@@ -20,6 +21,7 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
     const [currentUserId, setCurrentUserId] = useState(null);
     const [certificationToRenew, setCertificationToRenew] = useState(null);
     const [showRenewModal, setShowRenewModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Get feature access permissions
     const { canCreate, canExport, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
@@ -31,6 +33,15 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
 
     const handleAddCertificate = () => {
         setPage('certificates', { autoOpenDialog: true });
+    };
+
+    const handleImportData = () => {
+        setShowImportModal(true);
+    };
+
+    const handleImportSuccess = () => {
+        // Refresh dashboard data after successful import
+        fetchDashboardData();
     };
 
     const fetchDashboardData = useCallback(async () => {
@@ -335,6 +346,15 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> 
                         {getButtonText('Add Certificate', 'Upgrade to Add')}
                     </button>
+                    <button 
+                        onClick={() => handleRestrictedAction(handleImportData, handleShowUpgradePrompt)}
+                        disabled={!canCreate}
+                        className={`${getButtonClass('bg-yellow-500 hover:bg-yellow-600 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
+                        title={canCreate ? 'Import staff and certifications from CSV' : 'Upgrade to import data'}
+                    >
+                        <Upload className="mr-2 h-4 w-4" /> 
+                        {getButtonText('Import Data', 'Upgrade to Import')}
+                    </button>
                 </div>
             </div>
             
@@ -348,15 +368,15 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                 ) : (
                     <>
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                           <h3 className="text-sm font-medium text-emerald-600">Up-to-Date</h3>
+                           <h3 className="text-base font-medium text-emerald-600">Up-to-Date</h3>
                            <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.green}</p>
                        </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                           <h3 className="text-sm font-medium text-amber-600">Expiring Soon</h3>
+                           <h3 className="text-base font-medium text-amber-600">Expiring Soon</h3>
                            <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.amber}</p>
                        </div>
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                           <h3 className="text-sm font-medium text-red-600">Expired</h3>
+                           <h3 className="text-base font-medium text-red-600">Expired</h3>
                            <p className="text-3xl font-bold text-slate-900 mt-1">{metrics.red}</p>
                        </div>
                     </>
@@ -434,11 +454,26 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
             />
             
             {/* Renewal Modal */}
+            {showRenewModal && certificationToRenew && (
             <RenewCertificationModal
                 isOpen={showRenewModal}
                 onClose={handleCloseRenewalModal}
-                certification={certificationToRenew}
-                onSuccess={handleRenewalSuccess}
+                    certificationId={certificationToRenew.id}
+                    currentIssueDate={certificationToRenew.issue_date}
+                    currentExpiryDate={certificationToRenew.expiry_date}
+                    templateName={certificationToRenew.template_name}
+                    staffName={certificationToRenew.staff_name}
+                    templateValidityPeriodMonths={certificationToRenew.validity_period_months || 12}
+                    onRenewalSuccess={handleRenewalSuccess}
+                />
+            )}
+
+            {/* Import Data Modal */}
+            <ImportDataModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                user={profile}
+                onImportSuccess={handleImportSuccess}
             />
         </>
     );
