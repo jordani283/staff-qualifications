@@ -87,9 +87,9 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+            <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <ShieldCheck className="w-8 h-8 text-emerald-600 mr-2" />
+              <img src="/logo-mark.svg" alt="TeamCertify" className="w-8 h-8 mr-2" />
               <span className="text-xl font-bold text-slate-900">TeamCertify</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -719,7 +719,7 @@ export default function LandingPage({ onNavigateToAuth, onNavigateToPricing }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
-              <ShieldCheck className="w-8 h-8 text-emerald-400 mr-2" />
+              <img src="/logo-mark.svg" alt="TeamCertify" className="w-8 h-8 mr-2" />
               <span className="text-xl font-bold">TeamCertify</span>
             </div>
             <p className="text-slate-400">

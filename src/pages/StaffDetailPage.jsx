@@ -514,6 +514,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
     const handleCloseRenewalModal = () => {
         setCertificationToRenew(null);
         setShowRenewModal(false);
+        // Keep the underlying CertificationModal open (do not alter showCertModal)
     };
 
     // Handle staff name editing
@@ -1251,7 +1252,7 @@ export default function StaffDetailPage({ currentPageData, setPage, user, sessio
                     certificationId={certificationToRenew.id}
                     currentIssueDate={certificationToRenew.issue_date}
                     currentExpiryDate={certificationToRenew.expiry_date}
-                    templateName={certificationToRenew.template_name}
+                    templateName={certificationToRenew.template_name || certificationToRenew.certification_name}
                     staffName={staffMember.full_name}
                     templateValidityPeriodMonths={
                         certificationToRenew.validity_period_months || 

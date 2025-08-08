@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import {
-    ShieldCheck, LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3, MessageSquare
+    LayoutDashboard, Users, FileSpreadsheet, Clock, CreditCard, LogOut, BarChart3, MessageSquare, Upload
 } from 'lucide-react';
 import { Spinner } from './components/ui';
 import { useTrialStatus } from './hooks/useTrialStatus.js';
@@ -25,6 +25,7 @@ import GapAnalysisPage from './pages/GapAnalysisPage';
 import SupportPage from './pages/SupportPage';
 import AdminSupportPage from './pages/AdminSupportPage';
 import SubscriptionPage from './pages/SubscriptionPage';
+import ImportDataPage from './pages/ImportDataPage.jsx';
 
 // --- Main App Component ---
 export default function App() {
@@ -405,7 +406,7 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
         <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-blue-50 to-slate-100">
             <nav className="bg-white/80 backdrop-blur-sm border-r border-slate-200 w-64 p-4 flex-col flex-shrink-0 hidden md:flex shadow-lg">
                 <div className="flex items-center gap-3 px-2 mb-8">
-                    <ShieldCheck className="text-emerald-600 h-8 w-8" />
+                    <img src="/logo-mark.svg" alt="TeamCertify" className="h-8 w-8" />
                     <span className="font-bold text-lg text-slate-900">TeamCertify</span>
                 </div>
                 <div className="flex-grow space-y-2">
@@ -414,6 +415,7 @@ function MainLayout({ page, profile, user, setPage, supportUnread, children }) {
                     <a href="#" className={navItemClass('certificates')} onClick={() => setPage('certificates')}><FileSpreadsheet className="mr-3 h-5 w-5" />Certificates</a>
                     <a href="#" className={navItemClass('activities')} onClick={() => setPage('activities')}><Clock className="mr-3 h-5 w-5" />Activities</a>
                     <a href="#" className={navItemClass('gapanalysis')} onClick={() => setPage('gapanalysis')}><BarChart3 className="mr-3 h-5 w-5" />Gap Analysis</a>
+                    <a href="#" className={navItemClass('import')} onClick={() => setPage('import')}><Upload className="mr-3 h-5 w-5" />Import Data</a>
                     <a href="#" className={`${navItemClass(isAdmin ? 'admin-support' : 'support')} relative`} onClick={handleSupportClick}>
                         <MessageSquare className="mr-3 h-5 w-5" />
                         {isAdmin ? 'Admin Support' : 'Support'}
@@ -448,6 +450,7 @@ function PageContent({ page, currentPageData, setPage, handleSetPage, setCurrent
         case 'certificates': return <CertificatesPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} currentPageData={currentPageData} />;
         case 'activities': return <ActivitiesPage user={user} session={session} setPage={handleSetPage} />;
         case 'gapanalysis': return <GapAnalysisPage user={user} session={session} onOpenExpiredModal={onOpenExpiredModal} setPage={setPage} />;
+        case 'import': return <ImportDataPage user={user} profile={profile} session={session} setPage={setPage} onOpenExpiredModal={onOpenExpiredModal} />;
         case 'support': return <SupportPage session={session} supportUnread={supportUnread} />;
         case 'admin-support': return <AdminSupportPage session={session} />;
         case 'subscription': return <SubscriptionPage user={user} session={session} />;

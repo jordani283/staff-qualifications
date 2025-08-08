@@ -4,11 +4,12 @@ import { Spinner, showToast } from '../components/ui';
 import Dialog from '../components/Dialog';
 import { Clock, Filter, Search, Calendar, User, FileText, Upload, Trash2, Edit, MessageCircle, RefreshCw, UserPlus, UserX, Settings, X } from 'lucide-react';
 
-export default function ActivitiesPage({ user, setPage }) {
+export default function ActivitiesPage({ user, setPage, session }) {
     const [activities, setActivities] = useState([]);
     const [filteredActivities, setFilteredActivities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [staffMembers, setStaffMembers] = useState([]);
+    const [currentUserDisplayName, setCurrentUserDisplayName] = useState('');
     
     // Filter states
     const [selectedStaff, setSelectedStaff] = useState('');
@@ -139,7 +140,7 @@ export default function ActivitiesPage({ user, setPage }) {
                     new_value: null,
                     note: activity.event_description,
                     created_at: activity.created_at,
-                    performed_by: 'You', // These are always performed by the current user
+                    performed_by: currentUserDisplayName || 'You',
                     staff_name: staffName,
                     staff_id: activity.staff_id,
                     certification_name: certName,
@@ -160,7 +161,43 @@ export default function ActivitiesPage({ user, setPage }) {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentUserDisplayName]);
+
+    // Fetch current user's display name for staff activities
+    const fetchCurrentUserDisplayName = useCallback(async () => {
+        // Prefer session profile if available to avoid extra queries
+        const sessionProfile = session?.profile;
+        if (sessionProfile) {
+            const nameFromSession = ([sessionProfile.first_name, sessionProfile.last_name]
+                .filter(Boolean)
+                .join(' ') || sessionProfile.full_name || '').trim();
+            if (nameFromSession) {
+                setCurrentUserDisplayName(nameFromSession);
+                return;
+            }
+        }
+
+        // Fallback: fetch from profiles table
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, full_name')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            const nameFromDb = (profile && ([profile.first_name, profile.last_name]
+                .filter(Boolean)
+                .join(' ') || profile.full_name || '')).trim();
+
+            if (nameFromDb) {
+                setCurrentUserDisplayName(nameFromDb);
+            } else {
+                setCurrentUserDisplayName(user?.email || 'Unknown User');
+            }
+        } catch (e) {
+            setCurrentUserDisplayName(user?.email || 'Unknown User');
+        }
+    }, [session?.profile, user.id, user?.email]);
 
     // Fetch staff members for filter dropdown
     const fetchStaffMembers = useCallback(async () => {
@@ -176,9 +213,10 @@ export default function ActivitiesPage({ user, setPage }) {
     }, [user.id]);
 
     useEffect(() => {
+        fetchCurrentUserDisplayName();
         fetchActivities();
         fetchStaffMembers();
-    }, [fetchActivities, fetchStaffMembers]);
+    }, [fetchCurrentUserDisplayName, fetchActivities, fetchStaffMembers]);
 
     // Apply filters
     useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { X, Download, Eye, Calendar, FileText, User, Clock, RefreshCw, Edit2, Save, Upload, MessageSquare, CheckCircle, AlertTriangle, XCircle, Paperclip } from 'lucide-react';
 import { supabase } from '../supabase.js';
@@ -17,6 +17,7 @@ const CertificationModal = ({
   onDataChange = null // Callback to refresh data after changes
 }) => {
   const modalRef = useRef(null);
+  const fileInputRef = useRef(null);
   
   // State for inline editing
   const [isEditingIssueDate, setIsEditingIssueDate] = useState(false);
@@ -26,6 +27,7 @@ const CertificationModal = ({
   const [documentFile, setDocumentFile] = useState(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [savingData, setSavingData] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
 
   // No custom focus/escape trapping here; Dialog handles overlay, escape, and body scroll lock
 
@@ -83,6 +85,8 @@ const CertificationModal = ({
       return 'Unknown';
     }
   };
+
+  // Progress ring removed per request; keeping computeStatusFromExpiry for badge colors
 
   const handleDocumentAction = (action, filename) => {
     if (action === 'view' && certification.document_url) {
@@ -309,25 +313,48 @@ const CertificationModal = ({
             {/* Certification Details */}
             <div className="space-y-6 mb-8">
               {/* Header Block */}
-              <div className="bg-gradient-to-r from-emerald-50 to-blue-50/60 rounded-xl border border-emerald-100 p-5">
+              <div className="bg-gradient-to-r from-emerald-50 to-blue-50/60 rounded-xl border border-emerald-200 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="text-lg font-semibold text-slate-900">{certification.certification_name || 'Not specified'}</div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <User className="w-4 h-4 text-slate-500" />
-                      <span className="font-medium">{certification.staff_name || 'Not specified'}</span>
+                    <div className="text-xl font-bold text-slate-900">{certification.certification_name || 'Not specified'}</div>
+                    <div className="flex items-center gap-2 text-slate-800">
+                      <User className="w-4 h-4 text-slate-600" />
+                      <span className="font-semibold">{certification.staff_name || 'Not specified'}</span>
                     </div>
                   </div>
-                  <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(computeStatusFromExpiry(certification.expiry_date))}`}>
-                    {getStatusIcon(computeStatusFromExpiry(certification.expiry_date))}
-                    <span>{computeStatusFromExpiry(certification.expiry_date)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(computeStatusFromExpiry(certification.expiry_date))}`}>
+                      {getStatusIcon(computeStatusFromExpiry(certification.expiry_date))}
+                      <span>{computeStatusFromExpiry(certification.expiry_date)}</span>
+                    </div>
+                    {(canRenew && (computeStatusFromExpiry(certification.expiry_date) === 'Expired' || computeStatusFromExpiry(certification.expiry_date) === 'Expiring Soon') && typeof onRenew === 'function') && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!onRenew || isRenewing) return;
+                          setIsRenewing(true);
+                          try {
+                            await onRenew(certification);
+                          } finally {
+                            setIsRenewing(false);
+                          }
+                        }}
+                        disabled={isRenewing}
+                        title={isRenewing ? 'Processing renewal...' : 'Renew this certification'}
+                        aria-label="Renew certification"
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm border transition-colors ${isRenewing ? 'bg-emerald-400 text-white cursor-wait' : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700/40'}`}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isRenewing ? 'animate-spin' : ''}`} />
+                        {isRenewing ? 'Renewing...' : 'Renew'}
+                      </button>
+                    )}
                   </div>
                   </div>
                 </div>
                 {/* Date Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                  <div className="rounded-lg border border-emerald-100 bg-white p-3">
-                    <div className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                  <div className="rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-600 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       Issue Date
                     </div>
@@ -338,7 +365,7 @@ const CertificationModal = ({
                             type="date"
                             value={editingIssueDate}
                             onChange={(e) => setEditingIssueDate(e.target.value)}
-                            className="px-3 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="px-3 py-1 border border-slate-300 rounded text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             disabled={savingData}
                           />
                           <button
@@ -360,7 +387,7 @@ const CertificationModal = ({
                         </>
                       ) : (
                         <div className="flex items-center gap-2 group">
-                          <span className="text-sm text-slate-700">{formatDate(certification.issue_date)}</span>
+                          <span className="text-base text-slate-900 font-medium">{formatDate(certification.issue_date)}</span>
                           <button
                             onClick={handleIssueDateEdit}
                             className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100"
@@ -372,13 +399,13 @@ const CertificationModal = ({
                       )}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-blue-100 bg-white p-3">
-                    <div className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                  <div className="rounded-lg border border-blue-200 bg-white p-3 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-600 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       Expiry Date
                     </div>
-                    <div className="mt-1 text-sm text-slate-700 flex items-center">
-                      {formatDate(certification.expiry_date)}
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-base text-slate-900 font-medium">{formatDate(certification.expiry_date)}</span>
                       {isEditingIssueDate && (
                         <span className="ml-2 text-xs text-slate-500 italic">(auto-calculated)</span>
                       )}
@@ -388,39 +415,39 @@ const CertificationModal = ({
               </div>
 
               {/* Document Section */}
-              <div className="border-t border-slate-200 pt-6">
+              <div className="border-t border-slate-300 pt-6">
                 <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <Paperclip className="w-4 h-4 text-slate-500" />
                   Document
                 </h4>
                 
                 {certification.document_filename ? (
-                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-300">
                     <div className="flex items-center gap-3 min-w-0">
                       <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                      <span className="text-slate-700 text-sm truncate" title={certification.document_filename}>
+                      <span className="text-slate-900 font-medium text-sm truncate" title={certification.document_filename}>
                         {certification.document_filename}
                       </span>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => handleDocumentAction('view', certification.document_filename)}
-                        className="px-2 py-1 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors text-sm"
+                        className="px-2 py-1 text-xs border border-slate-300 text-slate-700 hover:bg-slate-50 rounded transition-colors"
                         title="View document"
                       >
                         View
                       </button>
                       <button
-                        onClick={() => handleDocumentAction('download', certification.document_filename)}
-                        className="px-2 py-1 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors text-sm"
-                        title="Download document"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2 py-1 text-xs border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                        title="Replace document"
                       >
-                        Download
+                        Replace
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-300 text-center">
                     <p className="text-sm text-slate-600">No document uploaded</p>
                   </div>
                 )}
@@ -433,14 +460,17 @@ const CertificationModal = ({
                     onChange={(e) => setDocumentFile(e.target.files[0])}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                     className="hidden"
+                    ref={fileInputRef}
                   />
-                  <label
-                    htmlFor="document-upload"
-                    className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors text-slate-700 font-medium"
-                  >
-                    <Upload className="w-4 h-4 text-slate-600" />
-                    {certification.document_filename ? 'Replace Document' : 'Upload Document'}
-                  </label>
+                  {!certification.document_filename && (
+                    <label
+                      htmlFor="document-upload"
+                      className="flex items-center gap-2 px-3 py-2 text-sm bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 cursor-pointer transition-colors text-emerald-700 font-semibold"
+                    >
+                      <Upload className="w-4 h-4 text-emerald-700" />
+                      Upload Document
+                    </label>
+                  )}
                   
                   {documentFile && (
                     <div className="flex items-center gap-2">
@@ -448,14 +478,14 @@ const CertificationModal = ({
                       <button
                         onClick={handleDocumentUpload}
                         disabled={uploadingDocument}
-                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded border border-emerald-700/40 transition-colors disabled:opacity-50"
                       >
                         {uploadingDocument ? 'Uploading...' : 'Upload'}
                       </button>
                       <button
                         onClick={() => setDocumentFile(null)}
                         disabled={uploadingDocument}
-                        className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors disabled:opacity-50"
+                        className="p-1 text-slate-400 hover:text-slate-600 rounded border border-transparent hover:border-slate-300 transition-colors disabled:opacity-50"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -465,8 +495,8 @@ const CertificationModal = ({
               </div>
 
               {/* Notes Section */}
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+              <div className="border-t border-slate-300 pt-6 mt-4">
+                <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
                   Notes (Optional)
                 </h4>
@@ -478,7 +508,7 @@ const CertificationModal = ({
                       onChange={(e) => setEditingNotes(e.target.value)}
                       placeholder="Add any notes about this certification..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
                       disabled={savingData}
                     />
                     <div className="flex items-center gap-2">
@@ -501,18 +531,19 @@ const CertificationModal = ({
                 ) : (
                   <div className="group">
                     {certification.notes ? (
-                      <div className="flex items-start gap-2">
-                        <p className="text-sm text-slate-700 flex-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          {certification.notes}
-                        </p>
-                        <button
-                          onClick={handleNotesEdit}
-                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors opacity-0 group-hover:opacity-100"
-                          title="Edit notes"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button onClick={handleNotesEdit} className="w-full text-left">
+                        <div className="flex items-start gap-2">
+                        <p className="text-sm text-slate-900 flex-1 bg-slate-50 p-3 rounded-lg border border-slate-300 group-hover:border-emerald-400 transition-colors">
+                            {certification.notes}
+                          </p>
+                          <span
+                            className="p-1 text-slate-400 group-hover:text-emerald-600 group-hover:bg-emerald-50 rounded transition-colors"
+                            title="Edit notes"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </span>
+                        </div>
+                      </button>
                     ) : (
                       <button
                         onClick={handleNotesEdit}
@@ -534,14 +565,14 @@ const CertificationModal = ({
             </h3>
             {auditTrail.length > 0 ? (
               <div className="relative">
-                <div className="absolute left-3 top-0 bottom-0 w-px bg-emerald-100 hidden sm:block" />
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-emerald-200 hidden sm:block" />
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
                   {auditTrail.map((entry, index) => (
                     <div key={entry.id || index} className="relative pl-8">
-                      <div className="absolute left-0 top-2 w-6 h-6 rounded-full bg-white border border-emerald-200 flex items-center justify-center text-emerald-500">
+                      <div className="absolute left-0 top-2 w-5 h-5 rounded-full bg-white border border-emerald-300 flex items-center justify-center text-emerald-500">
                         <Clock className="w-3 h-3" />
                       </div>
-                      <div className="bg-white rounded-lg p-4 border border-slate-100 shadow-sm">
+                      <div className="bg-white rounded-lg p-3 border border-slate-300 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
@@ -558,7 +589,9 @@ const CertificationModal = ({
                               <div className="text-sm text-slate-600 mb-2">
                                 <span className="text-red-600">{entry.old_value}</span>
                                 <span className="text-slate-400 mx-2">→</span>
-                                <span className="text-emerald-600">{entry.new_value}</span>
+                                <span className={`text-emerald-700 ${ (entry.action_type === 'EDIT' || entry.action === 'EDIT') ? 'font-semibold' : '' }`}>
+                                  {entry.new_value}
+                                </span>
                               </div>
                             )}
                             {entry.note && (
@@ -566,15 +599,15 @@ const CertificationModal = ({
                                 {entry.note}
                               </div>
                             )}
-                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <div className="flex items-center gap-4 text-xs text-slate-600">
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {formatDate(entry.created_at || entry.date)}
+                                <span>{formatDate(entry.created_at || entry.date)}</span>
                               </div>
                               {entry.performed_by && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 text-slate-700">
                                   <User className="w-3 h-3" />
-                                  {entry.performed_by}
+                                  <span className="font-medium">{entry.performed_by}</span>
                                 </div>
                               )}
                             </div>

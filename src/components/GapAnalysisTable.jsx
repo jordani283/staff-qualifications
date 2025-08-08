@@ -1,6 +1,6 @@
 import { Check, X, Minus } from 'lucide-react';
 
-export default function GapAnalysisTable({ staffData, templateData, certificationMatrix }) {
+export default function GapAnalysisTable({ staffData, templateData, certificationMatrix, onAssignMissing, canAssign = true }) {
     const getCellStyle = (status) => {
         switch (status) {
             case 'active':
@@ -33,7 +33,9 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                 return `${staffName} has expired ${templateName} certification`;
             case 'missing':
             default:
-                return `${staffName} does not have ${templateName} certification`;
+                return canAssign && onAssignMissing
+                    ? `Click to assign ${templateName} to ${staffName}`
+                    : `${staffName} does not have ${templateName} certification`;
         }
     };
 
@@ -93,9 +95,22 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                                             key={template.id} 
                                             className="p-1 text-left pl-2 pt-2"
                                         >
-                                            <div 
-                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors cursor-default`}
+                                            <div
+                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors ${status === 'missing' && canAssign && onAssignMissing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
                                                 title={getCellTitle(status, staff.full_name, template.name)}
+                                                role={status === 'missing' && canAssign && onAssignMissing ? 'button' : undefined}
+                                                tabIndex={status === 'missing' && canAssign && onAssignMissing ? 0 : -1}
+                                                onClick={() => {
+                                                    if (status === 'missing' && canAssign && onAssignMissing) {
+                                                        onAssignMissing(staff, template);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (status === 'missing' && canAssign && onAssignMissing && (e.key === 'Enter' || e.key === ' ')) {
+                                                        e.preventDefault();
+                                                        onAssignMissing(staff, template);
+                                                    }
+                                                }}
                                             >
                                                 {getCellIcon(status)}
                                             </div>

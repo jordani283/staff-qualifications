@@ -4,6 +4,8 @@ import { Spinner, showToast } from '../components/ui';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 import GapAnalysisTable from '../components/GapAnalysisTable.jsx';
 import { ChevronDown, Users, FileSpreadsheet, Check } from 'lucide-react';
+import Dialog from '../components/Dialog';
+import { logCertificationCreated, logDocumentUploaded, logCertificationComment } from '../utils/auditLogger.js';
 
 export default function GapAnalysisPage({ user, session, onOpenExpiredModal, setPage }) {
     const [rawData, setRawData] = useState([]);
@@ -15,6 +17,13 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
     const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
     const [showStaffDropdown, setShowStaffDropdown] = useState(false);
     const [showCertDropdown, setShowCertDropdown] = useState(false);
+    const [showAssignDialog, setShowAssignDialog] = useState(false);
+    const [assignTarget, setAssignTarget] = useState({ staff: null, template: null });
+    const [assignIssueDate, setAssignIssueDate] = useState('');
+    const [assignExpiryDate, setAssignExpiryDate] = useState('');
+    const [assignNotes, setAssignNotes] = useState('');
+    const [assignFile, setAssignFile] = useState(null);
+    const [assignSubmitting, setAssignSubmitting] = useState(false);
 
     // Get feature access permissions (Gap Analysis is available to all users)
     const { canCreate, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
@@ -129,6 +138,112 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                 return 'missing';
         }
     };
+
+    // Assign dialog helpers
+    const openAssignFromCell = (staff, template) => {
+        handleRestrictedAction(() => {
+            setAssignTarget({ staff, template });
+            const today = new Date().toISOString().split('T')[0];
+            setAssignIssueDate(today);
+            setAssignExpiryDate('');
+            setAssignNotes('');
+            setAssignFile(null);
+            setShowAssignDialog(true);
+        }, () => {
+            // If restricted, do nothing here. Gap page doesn't have its own upgrade modal.
+        });
+    };
+
+    const calculateExpiryForTemplate = async (templateId, issueDate) => {
+        if (!templateId || !issueDate) return '';
+        try {
+            const { data: template, error } = await supabase
+                .from('certification_templates')
+                .select('validity_period_months')
+                .eq('id', templateId)
+                .single();
+            if (error || !template) return '';
+            const d = new Date(issueDate + 'T00:00:00');
+            d.setMonth(d.getMonth() + parseInt(template.validity_period_months || 0));
+            return d.toISOString().split('T')[0];
+        } catch (e) {
+            return '';
+        }
+    };
+
+    const handleAssignIssueDateChange = async (newDate) => {
+        setAssignIssueDate(newDate);
+        if (assignTarget.template?.id) {
+            const exp = await calculateExpiryForTemplate(assignTarget.template.id, newDate);
+            setAssignExpiryDate(exp);
+        }
+    };
+
+    const handleSubmitAssign = async (e) => {
+        e.preventDefault();
+        if (!session || !assignTarget.staff?.id || !assignTarget.template?.id) return;
+        setAssignSubmitting(true);
+        try {
+            let documentUrl = null;
+            if (assignFile) {
+                const fileExt = assignFile.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `${session.user.id}/${assignTarget.staff.id}/${fileName}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('certificates')
+                    .upload(filePath, assignFile);
+                if (uploadError) throw uploadError;
+                const { data: { publicUrl } } = supabase.storage
+                    .from('certificates')
+                    .getPublicUrl(filePath);
+                documentUrl = publicUrl;
+            }
+
+            const { data: insertedCert, error } = await supabase
+                .from('staff_certifications')
+                .insert({
+                    user_id: session.user.id,
+                    staff_id: assignTarget.staff.id,
+                    template_id: assignTarget.template.id,
+                    issue_date: assignIssueDate,
+                    expiry_date: assignExpiryDate,
+                    document_url: documentUrl,
+                    notes: assignNotes || null,
+                })
+                .select()
+                .single();
+            if (error) throw error;
+            // Audit logs similar to StaffDetailPage
+            await logCertificationCreated(insertedCert.id, {
+                template_name: assignTarget.template.name
+            });
+            if (documentUrl && assignFile) {
+                await logDocumentUploaded(insertedCert.id, assignFile.name);
+            }
+            if (assignNotes && assignNotes.trim()) {
+                await logCertificationComment(insertedCert.id, `Initial note: ${assignNotes.trim()}`);
+            }
+            showToast('Certification assigned!', 'success');
+            setShowAssignDialog(false);
+            // refresh data
+            fetchGapAnalysisData();
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to assign certification', 'error');
+        } finally {
+            setAssignSubmitting(false);
+        }
+    };
+
+    // Pre-populate expiry when dialog opens
+    useEffect(() => {
+        if (showAssignDialog && assignTarget.template?.id && assignIssueDate) {
+            (async () => {
+                const exp = await calculateExpiryForTemplate(assignTarget.template.id, assignIssueDate);
+                if (exp) setAssignExpiryDate(exp);
+            })();
+        }
+    }, [showAssignDialog, assignTarget.template, assignIssueDate]);
 
     // Apply filters to data - use selected arrays instead of search strings
     const filteredStaffData = staffData.filter(staff => 
@@ -317,6 +432,7 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
     }
 
     return (
+        <>
         <div className="space-y-6">
             {/* Header */}
             <div>
@@ -500,6 +616,8 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                     staffData={filteredStaffData}
                     templateData={filteredTemplateData}
                     certificationMatrix={filteredMatrix}
+                    canAssign={canCreate}
+                    onAssignMissing={(staff, template) => openAssignFromCell(staff, template)}
                 />
             )}
 
@@ -522,5 +640,55 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                 </div>
             </div>
         </div>
+        {showAssignDialog && assignTarget.staff && assignTarget.template && (
+            <Dialog id="gap-assign-cert" title={`Assign ${assignTarget.template.name} to ${assignTarget.staff.full_name}`} onClose={() => setShowAssignDialog(false)}>
+                <form onSubmit={handleSubmitAssign} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Issue Date</label>
+                        <input
+                            type="date"
+                            value={assignIssueDate}
+                            onChange={(e) => handleAssignIssueDateChange(e.target.value)}
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Expiry Date</label>
+                        <input
+                            type="date"
+                            value={assignExpiryDate}
+                            onChange={(e) => setAssignExpiryDate(e.target.value)}
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Upload Document (Optional)</label>
+                        <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            onChange={(e) => setAssignFile(e.target.files?.[0] || null)}
+                            className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Notes (Optional)</label>
+                        <textarea
+                            rows="3"
+                            value={assignNotes}
+                            onChange={(e) => setAssignNotes(e.target.value)}
+                            placeholder="Add any notes about this certification..."
+                            className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
+                        />
+                    </div>
+                    <div className="flex justify-end pt-4 gap-3">
+                        <button type="button" onClick={() => setShowAssignDialog(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold py-2.5 px-4 rounded-lg transition-colors">Cancel</button>
+                        <button type="submit" disabled={assignSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50">{assignSubmitting ? 'Assigning...' : 'Assign Certification'}</button>
+                    </div>
+                </form>
+            </Dialog>
+        )}
+        </>
     );
 } 

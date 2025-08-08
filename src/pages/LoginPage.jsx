@@ -1,4 +1,3 @@
-import { ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase.js';
 import { showToast } from '../components/ui';
 
@@ -17,7 +16,7 @@ export default function LoginPage({ setPage }) {
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
                     <div className="text-center mb-8">
                         <div className="flex items-center justify-center gap-3 mb-4">
-                            <ShieldCheck className="text-emerald-600 h-8 w-8" />
+                            <img src="/logo-mark.svg" alt="TeamCertify" className="h-8 w-8" />
                             <span className="text-2xl font-bold text-slate-900">TeamCertify</span>
                         </div>
                         <h1 className="text-3xl font-bold text-slate-900">Welcome Back</h1>

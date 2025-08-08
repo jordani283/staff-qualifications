@@ -2,24 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility/UX: prevent blue focus outline on Recharts chart elements when clicking bars */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-/* Custom scrollbar for a more modern look */
+/* Subtle, light scrollbars to blend with UI */
 ::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: #1e293b; /* slate-800 */
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: #475569; /* slate-600 */
-    border-radius: 4px;
+    background: rgba(100, 116, 139, 0.35); /* slate-500 @ 35% */
+    border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #64748b; /* slate-500 */
+    background: rgba(100, 116, 139, 0.55);
 }
 /* Simple transition for page content */
 .page-enter {

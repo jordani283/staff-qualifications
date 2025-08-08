@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase.js';
 import { CardSpinner, Spinner, StatusBadge, showToast } from '../components/ui';
-import { Download, Plus, Users, FileSpreadsheet, RefreshCw, Upload } from 'lucide-react';
+import { Download, Plus, Users, FileSpreadsheet, RefreshCw, Search, X } from 'lucide-react';
 import ExpiryChart from '../components/ExpiryChart';
 import CertificationModal from '../components/CertificationModal';
 import RenewCertificationModal from '../components/RenewCertificationModal';
-import ImportDataModal from '../components/ImportDataModal';
 import { fetchAuditTrail } from '../utils/auditLogger.js';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 
@@ -21,7 +20,13 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
     const [currentUserId, setCurrentUserId] = useState(null);
     const [certificationToRenew, setCertificationToRenew] = useState(null);
     const [showRenewModal, setShowRenewModal] = useState(false);
-    const [showImportModal, setShowImportModal] = useState(false);
+    const [tableFilter, setTableFilter] = useState(null);
+
+    // Global search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchResults, setSearchResults] = useState({ staff: [], templates: [], certs: [] });
 
     // Get feature access permissions
     const { canCreate, canExport, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
@@ -36,12 +41,93 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
     };
 
     const handleImportData = () => {
-        setShowImportModal(true);
+        setPage('import');
     };
 
-    const handleImportSuccess = () => {
-        // Refresh dashboard data after successful import
-        fetchDashboardData();
+    // Debounced global search
+    useEffect(() => {
+        let isCancelled = false;
+        const run = async () => {
+            if (!session || !searchQuery || searchQuery.trim().length < 2) {
+                if (!isCancelled) setSearchResults({ staff: [], templates: [], certs: [] });
+                return;
+            }
+            setSearchLoading(true);
+            try {
+                const term = `%${searchQuery.trim()}%`;
+                const [staffRes, templateRes, certsRes] = await Promise.all([
+                    supabase
+                        .from('staff')
+                        .select('id, full_name, email, job_title')
+                        .eq('user_id', session.user.id)
+                        .ilike('full_name', term)
+                        .limit(10),
+                    supabase
+                        .from('certification_templates')
+                        .select('id, name, validity_period_months')
+                        .ilike('name', term)
+                        .limit(10),
+                    supabase
+                        .from('v_certifications_with_status')
+                        .select('id, staff_id, staff_name, template_id, template_name, status, expiry_date, document_url, user_id')
+                        .eq('user_id', session.user.id)
+                        .or(`staff_name.ilike.${term},template_name.ilike.${term}`)
+                        .order('staff_name', { ascending: true })
+                        .order('template_name', { ascending: true })
+                        .limit(20)
+                ]);
+                if (!isCancelled) {
+                    setSearchResults({
+                        staff: staffRes.data || [],
+                        templates: templateRes.data || [],
+                        certs: certsRes.data || []
+                    });
+                }
+            } catch (e) {
+                if (!isCancelled) setSearchResults({ staff: [], templates: [], certs: [] });
+            } finally {
+                if (!isCancelled) setSearchLoading(false);
+            }
+        };
+        const t = setTimeout(run, 250);
+        return () => {
+            isCancelled = true;
+            clearTimeout(t);
+        };
+    }, [searchQuery, session]);
+
+    // Close search on outside click
+    useEffect(() => {
+        if (!searchOpen) return;
+        const onDocClick = (e) => {
+            if (!e.target.closest?.('#global-search-container')) {
+                setSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, [searchOpen]);
+
+    const handleOpenStaffFromSearch = (staff) => {
+        setSearchOpen(false);
+        setSearchQuery('');
+        setPage('staffDetail', { staffMember: staff });
+    };
+
+    const handleOpenTemplateFromSearch = (template) => {
+        setSearchOpen(false);
+        setSearchQuery('');
+        setPage('certificates', { focusTemplateId: template.id });
+    };
+
+    const handleOpenCertificationFromSearch = (cert) => {
+        setSearchOpen(false);
+        setSearchQuery('');
+        // Navigate to staff detail and open the certification modal
+        setPage('staffDetail', { 
+            staffMember: { id: cert.staff_id, full_name: cert.staff_name },
+            openCertificationId: cert.id
+        });
     };
 
     const fetchDashboardData = useCallback(async () => {
@@ -100,8 +186,8 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
         });
         
         setMetrics({ green: greenCount, amber: amberCount, red: redCount });
-        setCerts([...redCerts, ...amberCerts]);
         setAllCerts(allCertsData);
+        setCerts([...redCerts, ...amberCerts]);
         updateChartData(allCertsData);
         setLoading(false);
     }, [session]);
@@ -117,6 +203,10 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
         // Apply filters
         if (filters.staffId && filters.staffId !== '') {
             filteredCerts = filteredCerts.filter(cert => cert.staff_id === filters.staffId);
+        }
+
+        if (filters.templateId && filters.templateId !== '') {
+            filteredCerts = filteredCerts.filter(cert => String(cert.template_id) === String(filters.templateId));
         }
 
         if (filters.statusFilter && filters.statusFilter !== 'all') {
@@ -224,6 +314,62 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
     useEffect(() => {
         fetchDashboardData();
     }, [fetchDashboardData]);
+
+    const computeActionNeededCerts = useCallback((sourceCerts, filter) => {
+        const base = (sourceCerts || []).filter(c => c.status === 'Expiring Soon' || c.status === 'Expired');
+        if (!filter) {
+            setCerts(base);
+            return;
+        }
+        const { startDate, endDate } = filter;
+        const filtered = base.filter(c => {
+            if (!c.expiry_date) return false;
+            return c.expiry_date >= startDate && c.expiry_date <= endDate;
+        });
+        setCerts(filtered);
+    }, []);
+
+    // Keep table rows in sync with active tableFilter without re-fetching
+    useEffect(() => {
+        computeActionNeededCerts(allCerts, tableFilter);
+    }, [allCerts, tableFilter, computeActionNeededCerts]);
+
+    const clearTableFilter = useCallback(() => {
+        setTableFilter(null);
+        computeActionNeededCerts(allCerts, null);
+    }, [allCerts, computeActionNeededCerts]);
+
+    const handleChartBarClick = useCallback(({ date, isWeekly }) => {
+        if (!date) return;
+        const start = new Date(date);
+        const end = new Date(date);
+        if (isWeekly) {
+            end.setDate(start.getDate() + 6);
+        }
+        const startIso = start.toISOString().split('T')[0];
+        const endIso = end.toISOString().split('T')[0];
+        if (tableFilter && tableFilter.startDate === startIso && tableFilter.endDate === endIso) {
+            clearTableFilter();
+            return;
+        }
+        const newFilter = { startDate: startIso, endDate: endIso, isWeekly };
+        setTableFilter(newFilter);
+        computeActionNeededCerts(allCerts, newFilter);
+        try {
+            document.getElementById('dashboard-table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch {}
+    }, [allCerts, computeActionNeededCerts, tableFilter, clearTableFilter]);
+
+    const formatFilterLabel = (filter) => {
+        if (!filter) return '';
+        const s = new Date(filter.startDate);
+        const e = new Date(filter.endDate);
+        const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        if (filter.startDate === filter.endDate) {
+            return `date ${fmt(s)}`;
+        }
+        return `week of ${fmt(s)} – ${fmt(e)}`;
+    };
     
     const handleExportCsv = async () => {
         if (!session) {
@@ -300,6 +446,21 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
 
     // Handle opening the renewal modal
     const handleRenewCertification = (cert) => {
+        // Keep the CertificationModal open behind the renewal modal
+        if (!showCertModal) {
+            // If opened from table action, also open the details modal in the background for consistency
+            setSelectedCertification({
+                id: cert.id,
+                certification_name: cert.template_name,
+                staff_name: cert.staff_name,
+                issue_date: cert.issue_date,
+                expiry_date: cert.expiry_date,
+                status: cert.status,
+                document_filename: cert.document_url ? cert.document_url.split('/').pop() : null,
+                document_url: cert.document_url
+            });
+            setShowCertModal(true);
+        }
         setCertificationToRenew(cert);
         setShowRenewModal(true);
     };
@@ -316,18 +477,132 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
     const handleCloseRenewalModal = () => {
         setCertificationToRenew(null);
         setShowRenewModal(false);
+        // Do not close CertificationModal; user returns to it
     };
 
     return (
         <>
-            <div className="flex justify-between items-start mb-8">
-                <div>
+            <div className="flex items-center gap-6 mb-8">
+                <div className="min-w-[240px]">
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">
                         {profile?.company_name ? `${profile.company_name}'s Dashboard` : 'Dashboard'}
                     </h1>
                     <p className="text-slate-600">Here's your team's compliance overview.</p>
                 </div>
-                <div className="flex gap-3">
+                {/* Global Search */}
+                <div id="global-search-container" className="flex-1 relative">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                            onFocus={() => setSearchOpen(true)}
+                            placeholder="Search for staff, certificates, or certifications..."
+                            className="w-full pl-9 pr-9 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        />
+                        {searchQuery && (
+                            <button
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                onClick={() => { setSearchQuery(''); setSearchResults({ staff: [], templates: [], certs: [] }); }}
+                                aria-label="Clear search"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+                    {searchOpen && (
+                        <div className="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                            {/* Loading state */}
+                            {searchLoading && (
+                                <div className="p-4 text-sm text-slate-600">Searching...</div>
+                            )}
+                            {!searchLoading && (searchResults.staff.length > 0 || searchResults.templates.length > 0 || searchResults.certs.length > 0) && (
+                                <div className="max-h-80 overflow-y-auto">
+                                    {/* Staff category */}
+                                    {searchResults.staff.length > 0 && (
+                                        <div>
+                                            <div className="px-4 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-200">Staff Members</div>
+                                            {searchResults.staff.map((s) => (
+                                                <div
+                                                    key={s.id}
+                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer"
+                                                    onClick={() => handleOpenStaffFromSearch(s)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleOpenStaffFromSearch(s); }}
+                                                >
+                                                    <div className="text-sm font-medium text-slate-900">{s.full_name}</div>
+                                                    <div className="text-xs text-slate-500">{s.job_title || 'No job title'}{s.email ? ` • ${s.email}` : ''}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Certificates category */}
+                                    {searchResults.templates.length > 0 && (
+                                        <div>
+                                            <div className="px-4 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-200">Certificates</div>
+                                            {searchResults.templates.map((t) => (
+                                                <div
+                                                    key={t.id}
+                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer"
+                                                    onClick={() => handleOpenTemplateFromSearch(t)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleOpenTemplateFromSearch(t); }}
+                                                >
+                                                    <div className="text-sm font-medium text-slate-900">{t.name}</div>
+                                                    <div className="text-xs text-slate-500">Validity: {t.validity_period_months || '-'} months</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Staff Certifications category */}
+                                    {searchResults.certs.length > 0 && (
+                                        <div>
+                                            <div className="px-4 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-200">Staff Certifications</div>
+                                            {searchResults.certs.map((c) => (
+                                                <div
+                                                    key={c.id}
+                                                    className="px-4 py-2 flex items-center justify-between hover:bg-slate-50 cursor-pointer"
+                                                    onClick={() => handleOpenCertificationFromSearch(c)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleOpenCertificationFromSearch(c); }}
+                                                >
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="text-sm font-medium text-slate-900">{c.staff_name} — {c.template_name}</div>
+                                                            <StatusBadge status={c.status} />
+                                                        </div>
+                                                        <div className="text-xs text-slate-500">{c.expiry_date ? `Expires: ${c.expiry_date}` : 'No expiry date'}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {c.document_url && (
+                                                            <a
+                                                                href={c.document_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-slate-600 hover:text-slate-800 px-2 py-1"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                Download
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {!searchLoading && (searchResults.staff.length === 0 && searchResults.templates.length === 0 && searchResults.certs.length === 0) && searchQuery.trim().length >= 2 && (
+                                <div className="p-4 text-sm text-slate-600">No results found</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <div className="flex gap-3 items-center">
                     <button 
                         onClick={() => handleRestrictedAction(handleAddStaff, handleShowUpgradePrompt)}
                         disabled={!canCreate}
@@ -345,15 +620,6 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                     >
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> 
                         {getButtonText('Add Certificate', 'Upgrade to Add')}
-                    </button>
-                    <button 
-                        onClick={() => handleRestrictedAction(handleImportData, handleShowUpgradePrompt)}
-                        disabled={!canCreate}
-                        className={`${getButtonClass('bg-yellow-500 hover:bg-yellow-600 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center`}
-                        title={canCreate ? 'Import staff and certifications from CSV' : 'Upgrade to import data'}
-                    >
-                        <Upload className="mr-2 h-4 w-4" /> 
-                        {getButtonText('Import Data', 'Upgrade to Import')}
                     </button>
                 </div>
             </div>
@@ -385,20 +651,30 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
 
             {/* Certificate Expiry Chart */}
             <div className="mb-8">
-                <ExpiryChart data={chartData} loading={loading} onFiltersChange={handleFiltersChange} session={session} />
+                <ExpiryChart data={chartData} loading={loading} onFiltersChange={handleFiltersChange} session={session} onBarClick={handleChartBarClick} />
             </div>
 
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-2">
                 <h2 className="text-2xl font-bold text-slate-900">Action Needed</h2>
-                <button 
-                    onClick={() => handleRestrictedAction(handleExportCsv, handleShowUpgradePrompt)}
-                    disabled={!canExport}
-                    className={`${getButtonClass('bg-slate-600 hover:bg-slate-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center text-sm`}
-                    title={canExport ? 'Export all certifications to CSV' : 'Upgrade to export data'}
-                >
-                    <Download className="mr-2 h-4 w-4" /> 
-                    {getButtonText('Export All to CSV', 'Upgrade to Export')}
-                </button>
+                <div className="flex items-center gap-3">
+                    {tableFilter && (
+                        <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm px-3 py-1 rounded">
+                            <span>Filtered to {formatFilterLabel(tableFilter)}</span>
+                            <button onClick={clearTableFilter} className="p-1 hover:bg-amber-100 rounded" aria-label="Clear table filter">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+                    <button 
+                        onClick={() => handleRestrictedAction(handleExportCsv, handleShowUpgradePrompt)}
+                        disabled={!canExport}
+                        className={`${getButtonClass('bg-slate-600 hover:bg-slate-700 shadow-sm', 'bg-gray-400 cursor-not-allowed')} text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center text-sm`}
+                        title={canExport ? 'Export all certifications to CSV' : 'Upgrade to export data'}
+                    >
+                        <Download className="mr-2 h-4 w-4" /> 
+                        {getButtonText('Export All to CSV', 'Upgrade to Export')}
+                    </button>
+                </div>
             </div>
             <div id="dashboard-table-container" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? <Spinner /> : (
@@ -461,20 +737,14 @@ export default function DashboardPage({ profile, session, onOpenExpiredModal, se
                     certificationId={certificationToRenew.id}
                     currentIssueDate={certificationToRenew.issue_date}
                     currentExpiryDate={certificationToRenew.expiry_date}
-                    templateName={certificationToRenew.template_name}
+                    templateName={certificationToRenew.template_name || certificationToRenew.certification_name}
                     staffName={certificationToRenew.staff_name}
                     templateValidityPeriodMonths={certificationToRenew.validity_period_months || 12}
                     onRenewalSuccess={handleRenewalSuccess}
                 />
             )}
 
-            {/* Import Data Modal */}
-            <ImportDataModal
-                isOpen={showImportModal}
-                onClose={() => setShowImportModal(false)}
-                user={profile}
-                onImportSuccess={handleImportSuccess}
-            />
+            
         </>
     );
 } 

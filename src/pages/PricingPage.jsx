@@ -1,8 +1,6 @@
 import React from 'react';
 import { 
   Check, 
-  Shield, 
-  ShieldCheck,
   ArrowRight, 
   Star,
   Users,
@@ -110,7 +108,7 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <ShieldCheck className="w-8 h-8 text-emerald-600 mr-2" />
+              <img src="/logo-mark.svg" alt="TeamCertify" className="w-8 h-8 mr-2" />
               <span className="text-xl font-bold text-slate-900">TeamCertify</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -324,9 +322,9 @@ export default function PricingPage({ onNavigateToAuth, onNavigateBack }) {
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+           <div className="text-center">
                          <div className="flex items-center justify-center mb-4">
-               <ShieldCheck className="w-8 h-8 text-emerald-400 mr-2" />
+               <img src="/logo-mark.svg" alt="TeamCertify" className="w-8 h-8 mr-2" />
                <span className="text-xl font-bold">TeamCertify</span>
              </div>
             <p className="text-slate-400">

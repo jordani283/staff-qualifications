@@ -53,9 +53,11 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-export default function ExpiryChart({ data, loading, onFiltersChange, session }) {
+export default function ExpiryChart({ data, loading, onFiltersChange, session, onBarClick }) {
     const [staffMembers, setStaffMembers] = useState([]);
     const [selectedStaff, setSelectedStaff] = useState('');
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState('');
     const [startDate, setStartDate] = useState(() => {
         const today = new Date();
         return today.toISOString().split('T')[0];
@@ -73,24 +75,30 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                 // CRITICAL: Clear staff members when no session
                 setStaffMembers([]);
                 setSelectedStaff('');
-                return;
+                // Still allow certificate filter without session (public templates)
+            } else {
+                const { data: staff } = await supabase.from('staff').select('id, full_name').eq('user_id', session.user.id).order('full_name');
+                setStaffMembers(staff || []);
             }
-            
-            const { data: staff } = await supabase.from('staff').select('id, full_name').eq('user_id', session.user.id).order('full_name');
-            setStaffMembers(staff || []);
+        };
+        const fetchTemplates = async () => {
+            const { data: t } = await supabase.from('certification_templates').select('id, name').order('name');
+            setTemplates(t || []);
         };
         fetchStaffMembers();
+        fetchTemplates();
     }, [session]);
 
     useEffect(() => {
         if (onFiltersChange) {
             onFiltersChange({
                 staffId: selectedStaff,
+                templateId: selectedTemplate,
                 startDate,
                 endDate
             });
         }
-    }, [selectedStaff, startDate, endDate, onFiltersChange]);
+    }, [selectedStaff, selectedTemplate, startDate, endDate, onFiltersChange]);
 
     const handleResetFilters = () => {
         const today = new Date();
@@ -100,6 +108,7 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
         setStartDate(today.toISOString().split('T')[0]);
         setEndDate(thirtyDaysFromNow.toISOString().split('T')[0]);
         setSelectedStaff('');
+        setSelectedTemplate('');
     };
 
     if (loading) {
@@ -160,6 +169,16 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                                 <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                             ))}
                         </select>
+                        <select
+                            value={selectedTemplate}
+                            onChange={(e) => setSelectedTemplate(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                            <option value="">All Certificates</option>
+                            {templates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
                         <button
                             onClick={handleResetFilters}
                             className="bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors flex items-center gap-2"
@@ -181,7 +200,7 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-slate-900">Upcoming Certificate Expiries</h2>
-                <div className="flex gap-3">
+                    <div className="flex gap-3">
                     <input
                         type="date"
                         value={startDate}
@@ -218,6 +237,16 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                             <option key={staff.id} value={staff.id}>{staff.full_name}</option>
                         ))}
                     </select>
+                        <select
+                            value={selectedTemplate}
+                            onChange={(e) => setSelectedTemplate(e.target.value)}
+                            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                            <option value="">All Certificates</option>
+                            {templates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
                     <button
                         onClick={handleResetFilters}
                         className="bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors flex items-center gap-2"
@@ -285,7 +314,17 @@ export default function ExpiryChart({ data, loading, onFiltersChange, session })
                             dataKey="count" 
                             fill="#FCD34D"
                             radius={[4, 4, 0, 0]}
-                            className="hover:opacity-80 transition-opacity"
+                            className="hover:opacity-80 transition-opacity cursor-pointer"
+                            onClick={(barData, index) => {
+                                const payload = barData?.payload;
+                                if (!payload) return;
+                                if (typeof onBarClick === 'function') {
+                                    onBarClick({
+                                        date: payload.date,
+                                        isWeekly: payload.isWeekly
+                                    });
+                                }
+                            }}
                         />
                     </BarChart>
                 </ResponsiveContainer>
