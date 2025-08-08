@@ -9,6 +9,7 @@ import { useSupportUnread } from './hooks/useSupportUnread.js';
 import TrialExpiryBanner from './components/TrialExpiryBanner.jsx';
 import TrialExpiredModal from './components/TrialExpiredModal.jsx';
 import GAPageViewTracker from './utils/GAPageViewTracker';
+import ResetPasswordModal from './components/ResetPasswordModal.jsx';
 
 // Page Components
 import LandingPage from './pages/LandingPage';
@@ -36,6 +37,7 @@ export default function App() {
     const [currentPageData, setCurrentPageData] = useState({});
     const [stripeSessionId, setStripeSessionId] = useState(null);
     const [showExpiredModal, setShowExpiredModal] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
     
     // Use refs to track current user ID and profile across renders and auth events
     const currentUserIdRef = useRef(null);
@@ -170,6 +172,14 @@ export default function App() {
                     // Just a token refresh - do nothing, session is still valid
                     console.log('🔄 Token refreshed silently');
                     return;
+
+                case 'PASSWORD_RECOVERY':
+                    // Open modal to set a new password
+                    console.log('🔐 Password recovery flow active');
+                    setShowResetModal(true);
+                    // Keep user on auth page
+                    setPage('login');
+                    break;
 
                 case 'SIGNED_IN':
                     // Only treat as new sign-in if user actually changed
@@ -378,6 +388,11 @@ export default function App() {
             {/* Google Analytics 4 Page View Tracker */}
             <GAPageViewTracker currentPage={page} user={user} />
             {pageContent}
+            <ResetPasswordModal
+                isOpen={showResetModal}
+                onClose={() => setShowResetModal(false)}
+                onSuccess={() => setShowResetModal(false)}
+            />
         </div>
     );
 }

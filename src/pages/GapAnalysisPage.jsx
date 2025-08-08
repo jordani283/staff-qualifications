@@ -3,6 +3,7 @@ import { supabase } from '../supabase.js';
 import { Spinner, showToast } from '../components/ui';
 import { useFeatureAccess } from '../hooks/useFeatureAccess.js';
 import GapAnalysisTable from '../components/GapAnalysisTable.jsx';
+import RenewCertificationModal from '../components/RenewCertificationModal.jsx';
 import { ChevronDown, Users, FileSpreadsheet, Check } from 'lucide-react';
 import Dialog from '../components/Dialog';
 import { logCertificationCreated, logDocumentUploaded, logCertificationComment } from '../utils/auditLogger.js';
@@ -24,6 +25,9 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
     const [assignNotes, setAssignNotes] = useState('');
     const [assignFile, setAssignFile] = useState(null);
     const [assignSubmitting, setAssignSubmitting] = useState(false);
+    const [showRenewDialog, setShowRenewDialog] = useState(false);
+    const [renewContext, setRenewContext] = useState(null);
+    const [renewLoading, setRenewLoading] = useState(false);
 
     // Get feature access permissions (Gap Analysis is available to all users)
     const { canCreate, getButtonText, getButtonClass, handleRestrictedAction } = useFeatureAccess(session);
@@ -233,6 +237,64 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
         } finally {
             setAssignSubmitting(false);
         }
+    };
+
+    // Open Renew flow from a table cell for expired certs
+    const openRenewFromCell = async (staff, template) => {
+        handleRestrictedAction(async () => {
+            setRenewLoading(true);
+            try {
+                // Fetch latest certification record for this staff/template
+                const { data: cert, error: certError } = await supabase
+                    .from('v_certifications_with_status')
+                    .select('*')
+                    .eq('staff_id', staff.id)
+                    .eq('template_id', template.id)
+                    .order('expiry_date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (certError || !cert) {
+                    showToast('Could not load certification to renew.', 'error');
+                    return;
+                }
+
+                // Fetch template validity period
+                const { data: tmpl, error: tmplError } = await supabase
+                    .from('certification_templates')
+                    .select('validity_period_months, name')
+                    .eq('id', template.id)
+                    .single();
+
+                if (tmplError) {
+                    showToast('Could not load certificate template details.', 'error');
+                    return;
+                }
+
+                setRenewContext({
+                    id: cert.id,
+                    issue_date: cert.issue_date,
+                    expiry_date: cert.expiry_date,
+                    template_name: cert.template_name || tmpl.name || template.name,
+                    staff_name: staff.full_name,
+                    validity_months: parseInt(tmpl.validity_period_months || 12)
+                });
+                setShowRenewDialog(true);
+            } catch (e) {
+                console.error('Failed to open renew dialog:', e);
+                showToast('Unexpected error while preparing renewal.', 'error');
+            } finally {
+                setRenewLoading(false);
+            }
+        }, () => {
+            // Restricted action: re-use the plan upgrade gate if available
+            if (onOpenExpiredModal) onOpenExpiredModal();
+        });
+    };
+
+    const handleRenewalSuccess = () => {
+        // Refresh page data after renewal
+        fetchGapAnalysisData();
     };
 
     // Pre-populate expiry when dialog opens
@@ -617,7 +679,9 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                     templateData={filteredTemplateData}
                     certificationMatrix={filteredMatrix}
                     canAssign={canCreate}
+                    canRenew={canCreate}
                     onAssignMissing={(staff, template) => openAssignFromCell(staff, template)}
+                    onOpenRenew={(staff, template) => openRenewFromCell(staff, template)}
                 />
             )}
 
@@ -688,6 +752,19 @@ export default function GapAnalysisPage({ user, session, onOpenExpiredModal, set
                     </div>
                 </form>
             </Dialog>
+        )}
+        {showRenewDialog && renewContext && (
+            <RenewCertificationModal
+                isOpen={showRenewDialog}
+                onClose={() => setShowRenewDialog(false)}
+                certificationId={renewContext.id}
+                currentIssueDate={renewContext.issue_date}
+                currentExpiryDate={renewContext.expiry_date}
+                templateName={renewContext.template_name}
+                staffName={renewContext.staff_name}
+                templateValidityPeriodMonths={renewContext.validity_months}
+                onRenewalSuccess={handleRenewalSuccess}
+            />
         )}
         </>
     );

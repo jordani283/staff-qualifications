@@ -1,6 +1,6 @@
 import { Check, X, Minus } from 'lucide-react';
 
-export default function GapAnalysisTable({ staffData, templateData, certificationMatrix, onAssignMissing, canAssign = true }) {
+export default function GapAnalysisTable({ staffData, templateData, certificationMatrix, onAssignMissing, canAssign = true, onOpenRenew, canRenew = true }) {
     const getCellStyle = (status) => {
         switch (status) {
             case 'active':
@@ -30,7 +30,9 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
             case 'active':
                 return `${staffName} has active ${templateName} certification`;
             case 'expired':
-                return `${staffName} has expired ${templateName} certification`;
+                return canRenew && onOpenRenew
+                    ? `Click to renew ${templateName} for ${staffName}`
+                    : `${staffName} has expired ${templateName} certification`;
             case 'missing':
             default:
                 return canAssign && onAssignMissing
@@ -96,19 +98,29 @@ export default function GapAnalysisTable({ staffData, templateData, certificatio
                                             className="p-1 text-left pl-2 pt-2"
                                         >
                                             <div
-                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors ${status === 'missing' && canAssign && onAssignMissing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${getCellStyle(status)} transition-colors ${
+                                                    (status === 'missing' && canAssign && onAssignMissing) ||
+                                                    (status === 'expired' && canRenew && onOpenRenew)
+                                                        ? 'cursor-pointer hover:opacity-80'
+                                                        : 'cursor-default'
+                                                }`}
                                                 title={getCellTitle(status, staff.full_name, template.name)}
-                                                role={status === 'missing' && canAssign && onAssignMissing ? 'button' : undefined}
-                                                tabIndex={status === 'missing' && canAssign && onAssignMissing ? 0 : -1}
+                                                role={(status === 'missing' && canAssign && onAssignMissing) || (status === 'expired' && canRenew && onOpenRenew) ? 'button' : undefined}
+                                                tabIndex={(status === 'missing' && canAssign && onAssignMissing) || (status === 'expired' && canRenew && onOpenRenew) ? 0 : -1}
                                                 onClick={() => {
                                                     if (status === 'missing' && canAssign && onAssignMissing) {
                                                         onAssignMissing(staff, template);
+                                                    } else if (status === 'expired' && canRenew && onOpenRenew) {
+                                                        onOpenRenew(staff, template);
                                                     }
                                                 }}
                                                 onKeyDown={(e) => {
-                                                    if (status === 'missing' && canAssign && onAssignMissing && (e.key === 'Enter' || e.key === ' ')) {
+                                                    if ((status === 'missing' && canAssign && onAssignMissing) && (e.key === 'Enter' || e.key === ' ')) {
                                                         e.preventDefault();
                                                         onAssignMissing(staff, template);
+                                                    } else if ((status === 'expired' && canRenew && onOpenRenew) && (e.key === 'Enter' || e.key === ' ')) {
+                                                        e.preventDefault();
+                                                        onOpenRenew(staff, template);
                                                     }
                                                 }}
                                             >
