@@ -243,6 +243,32 @@ export default function App() {
         };
     }, []); // Empty dependency array - refs ensure we have current values
 
+    // Handle Supabase password recovery links with ?code=... by exchanging for a session
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (!code) return;
+
+        (async () => {
+            try {
+                console.log('🔐 Exchanging recovery code for session...');
+                const { error } = await supabase.auth.exchangeCodeForSession(code);
+                if (error) {
+                    console.error('Failed to exchange code for session:', error);
+                    return;
+                }
+                // Open the reset password modal and route to login view
+                setShowResetModal(true);
+                setPage('login');
+            } catch (err) {
+                console.error('Unexpected error during code exchange:', err);
+            } finally {
+                // Clean URL to avoid re-processing on refresh
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        })();
+    }, []);
+
     // HOOK 1: Captures the Stripe session ID from the URL on initial load
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
