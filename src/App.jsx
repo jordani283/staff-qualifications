@@ -38,6 +38,7 @@ export default function App() {
     const [stripeSessionId, setStripeSessionId] = useState(null);
     const [showExpiredModal, setShowExpiredModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
+    const [pendingDeepLink, setPendingDeepLink] = useState(null);
     
     // Use refs to track current user ID and profile across renders and auth events
     const currentUserIdRef = useRef(null);
@@ -269,6 +270,22 @@ export default function App() {
         })();
     }, []);
 
+    // Deep link capture: ?go=staff&staffId=... or ?go=cert&staffId=...&certId=...
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const go = params.get('go');
+        if (!go) return;
+        const staffId = params.get('staffId') || params.get('staff_id');
+        const certId = params.get('certId') || params.get('cert_id');
+
+        // Validate shape
+        if (go === 'staff' && staffId) {
+            setPendingDeepLink({ type: 'staff', staffId });
+        } else if (go === 'cert' && staffId && certId) {
+            setPendingDeepLink({ type: 'cert', staffId, certId });
+        }
+    }, []);
+
     // HOOK 1: Captures the Stripe session ID from the URL on initial load
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -308,6 +325,35 @@ export default function App() {
         }
         
     }, [user, profile, loading, stripeSessionId]); // Dependencies remain the same
+
+    // Apply deep link once user and profile are ready
+    useEffect(() => {
+        if (!pendingDeepLink) return;
+        if (!user || !profile || loading) return;
+
+        const navigateToDeepLink = () => {
+            if (pendingDeepLink.type === 'staff') {
+                setPage('staffDetail', { staffMember: { id: pendingDeepLink.staffId } });
+            } else if (pendingDeepLink.type === 'cert') {
+                setPage('staffDetail', { 
+                    staffMember: { id: pendingDeepLink.staffId },
+                    openCertificationId: pendingDeepLink.certId
+                });
+            }
+        };
+
+        navigateToDeepLink();
+        setPendingDeepLink(null);
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('go');
+            url.searchParams.delete('staffId');
+            url.searchParams.delete('staff_id');
+            url.searchParams.delete('certId');
+            url.searchParams.delete('cert_id');
+            window.history.replaceState({}, document.title, url.pathname + (url.search ? `?${url.searchParams}` : ''));
+        } catch {}
+    }, [pendingDeepLink, user, profile, loading]);
 
     const handleSetPage = (newPage, data = {}) => {
         setPage(newPage);

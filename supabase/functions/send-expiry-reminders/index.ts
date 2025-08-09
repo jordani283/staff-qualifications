@@ -275,8 +275,9 @@ async function sendExpiryEmail({
   isAdminEmail: boolean
 }): Promise<boolean> {
   try {
-    const certificationUrl = `${baseUrl}/staff/${staffId}/certifications/${certificationId}`
-    const staffUrl = `${baseUrl}/staff/${staffId}`
+    // Use query-parameter deep links for SPA navigation
+    const certificationUrl = `${baseUrl}/?go=cert&staffId=${encodeURIComponent(staffId)}&certId=${encodeURIComponent(certificationId)}`
+    const staffUrl = `${baseUrl}/?go=staff&staffId=${encodeURIComponent(staffId)}`
     
     const subject = isAdminEmail 
       ? `Certification Expiry Alert: ${staffName} - ${certificationName}`
