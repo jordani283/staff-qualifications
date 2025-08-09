@@ -5,13 +5,25 @@ import { showToast } from '../components/ui';
 export default function LoginPage({ setPage }) {
     const [mode, setMode] = useState('login'); // 'login' | 'forgot'
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSigningIn, setIsSigningIn] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        if (isSigningIn) return;
         const formData = new FormData(e.target);
         const { email, password } = Object.fromEntries(formData.entries());
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) showToast(error.message, 'error');
+        try {
+            setIsSigningIn(true);
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                showToast(error.message, 'error');
+                setIsSigningIn(false);
+            }
+            // On success, App's auth listener will transition to dashboard; keep spinner active here
+        } catch (err) {
+            showToast('Something went wrong. Please try again.', 'error');
+            setIsSigningIn(false);
+        }
     };
 
     const handleForgotPassword = async (e) => {
@@ -41,7 +53,7 @@ export default function LoginPage({ setPage }) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
                     <div className="text-center mb-8">
@@ -90,9 +102,13 @@ export default function LoginPage({ setPage }) {
                             </div>
                             <button 
                                 type="submit" 
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm"
+                                disabled={isSigningIn}
+                                className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 ${isSigningIn ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                                Sign In
+                                {isSigningIn && (
+                                    <span className="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
+                                )}
+                                <span>{isSigningIn ? 'Signing in…' : 'Sign In'}</span>
                             </button>
                         </form>
                     ) : (

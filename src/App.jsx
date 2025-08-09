@@ -343,8 +343,9 @@ export default function App() {
         setShowExpiredModal(true);
     };
 
-    if (loading) {
-        return <div id="app" className="flex h-screen w-screen overflow-hidden"><Spinner /></div>;
+    const shouldShowGlobalSpinner = loading && !!user;
+    if (shouldShowGlobalSpinner) {
+        return <div id="app" className="flex h-screen w-screen overflow-hidden bg-white"><Spinner /></div>;
     }
 
     const handleNavigateToAuth = (authType) => {
