@@ -39,6 +39,7 @@ export default function App() {
     const [showExpiredModal, setShowExpiredModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
     const [pendingDeepLink, setPendingDeepLink] = useState(null);
+    const pendingDeepLinkRef = useRef(null);
     
     // Use refs to track current user ID and profile across renders and auth events
     const currentUserIdRef = useRef(null);
@@ -104,7 +105,7 @@ export default function App() {
                     currentProfileRef.current = profile;
                     
                     // Set default page for authenticated users with complete profiles
-                    if (profile && profile.company_name) {
+                    if (profile && profile.company_name && !pendingDeepLinkRef.current) {
                         setPage('dashboard');
                     }
                 } else {
@@ -205,7 +206,7 @@ export default function App() {
                                 currentProfileRef.current = profileData;
                                 
                                 // Set default page for authenticated users with complete profiles
-                                if (profileData && profileData.company_name) {
+                                if (profileData && profileData.company_name && !pendingDeepLinkRef.current) {
                                     setPage('dashboard');
                                 }
                             }
@@ -280,9 +281,13 @@ export default function App() {
 
         // Validate shape
         if (go === 'staff' && staffId) {
-            setPendingDeepLink({ type: 'staff', staffId });
+            const dl = { type: 'staff', staffId };
+            setPendingDeepLink(dl);
+            pendingDeepLinkRef.current = dl;
         } else if (go === 'cert' && staffId && certId) {
-            setPendingDeepLink({ type: 'cert', staffId, certId });
+            const dl = { type: 'cert', staffId, certId };
+            setPendingDeepLink(dl);
+            pendingDeepLinkRef.current = dl;
         }
     }, []);
 
@@ -344,6 +349,7 @@ export default function App() {
 
         navigateToDeepLink();
         setPendingDeepLink(null);
+        pendingDeepLinkRef.current = null;
         try {
             const url = new URL(window.location.href);
             url.searchParams.delete('go');
@@ -351,7 +357,9 @@ export default function App() {
             url.searchParams.delete('staff_id');
             url.searchParams.delete('certId');
             url.searchParams.delete('cert_id');
-            window.history.replaceState({}, document.title, url.pathname + (url.search ? `?${url.searchParams}` : ''));
+            const paramsString = url.searchParams.toString();
+            const cleaned = paramsString ? `${url.pathname}?${paramsString}` : url.pathname;
+            window.history.replaceState({}, document.title, cleaned);
         } catch {}
     }, [pendingDeepLink, user, profile, loading]);
 
